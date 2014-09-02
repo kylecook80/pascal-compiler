@@ -27,13 +27,11 @@ func main() {
 
 		for i, line := range dataSlice {
 			if err := list.AddLine(line); err != nil {
-				fmt.Println("Error outputting to listing file.")
-				return
+				log.Fatal("Error outputting to listing file.")
 			}
 			if i == 4 {
 				if err := list.AddError("Something is wrong"); err != nil {
-					fmt.Println("Error outputting to listing file.")
-					return
+					log.Fatal("Error outputting to listing file.")
 				}
 			}
 		}

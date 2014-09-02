@@ -19,7 +19,7 @@ type ListingFile struct {
 // AddLine adds a line from the source code to the listing file.
 // It adds a line number at the beginning.
 func (listing *ListingFile) AddLine(line string) error {
-	lineNumber := strconv.Itoa(listing.counter)
+	lineNumber := strconv.Itoa(listing.counter + 1)
 	_, err := listing.buf.WriteString(lineNumber + ": " + line + "\n")
 	listing.counter += 1
 	return err

@@ -49,14 +49,77 @@ func TestReadFile(t *testing.T) {
 
 func TestListingFile(t *testing.T) {
 	Convey("Given a listing file", t, func() {
+		listingFile := new(ListingFile)
+		fileName := GenerateTimeString(time.Now()) + "_listing_file.txt"
+
 		Convey("Add a line to it", func() {
+			newLine := "Some source code!"
 
+			listingFile.AddLine(newLine)
+
+			So(listingFile.buf.String(), ShouldEqual, "1: Some source code!\n")
+			So(listingFile.counter, ShouldEqual, 1)
 		})
+
+		Convey("Add two lines to it", func() {
+			newLine := "Some source code!"
+			newLine2 := "Some more source code!"
+
+			listingFile.AddLine(newLine)
+			listingFile.AddLine(newLine2)
+
+			So(listingFile.buf.String(), ShouldEqual, "1: Some source code!\n2: Some more source code!\n")
+			So(listingFile.counter, ShouldEqual, 2)
+		})
+
 		Convey("Add an error to it", func() {
+			someError := "This is wrong."
 
+			listingFile.AddError(someError)
+
+			So(listingFile.buf.String(), ShouldEqual, "LEXERR: This is wrong.\n")
+			So(listingFile.counter, ShouldEqual, 0)
 		})
-		Convey("Save the listing file", func() {
 
+		Convey("Add two errors to it", func() {
+			someError := "This is wrong."
+			someOtherError := "This is also wrong."
+
+			listingFile.AddError(someError)
+			listingFile.AddError(someOtherError)
+
+			So(listingFile.buf.String(), ShouldEqual, "LEXERR: This is wrong.\nLEXERR: This is also wrong.\n")
+			So(listingFile.counter, ShouldEqual, 0)
+		})
+
+		Convey("Add one line, one error, and another line to it", func() {
+			someLine := "Some incorrect source code."
+			someError := "Error describing incorrect source code."
+			someOtherLine := "And some more source code here."
+
+			listingFile.AddLine(someLine)
+			listingFile.AddError(someError)
+			listingFile.AddLine(someOtherLine)
+
+			So(listingFile.buf.String(), ShouldEqual,
+				"1: Some incorrect source code.\n"+
+					"LEXERR: Error describing incorrect source code.\n"+
+					"2: And some more source code here.\n")
+			So(listingFile.counter, ShouldEqual, 2)
+		})
+
+		Convey("Save the listing file", func() {
+			listingFile.AddLine("Some source code!")
+			listingFile.Save(fileName)
+			data, err := ioutil.ReadFile(fileName)
+			dataString := string(data)
+
+			So(dataString, ShouldEqual, "1: Some source code!\n")
+			So(err, ShouldBeNil)
+		})
+
+		Reset(func() {
+			os.Remove(fileName)
 		})
 	})
 }
