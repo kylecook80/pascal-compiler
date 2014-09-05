@@ -2,7 +2,7 @@ package lexer
 
 import (
 	"bytes"
-	"error"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"

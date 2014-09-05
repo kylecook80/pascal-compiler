@@ -2,10 +2,7 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
-	"strings"
-	"time"
 )
 
 import "compiler/lexer"
