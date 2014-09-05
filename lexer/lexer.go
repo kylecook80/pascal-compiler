@@ -11,7 +11,20 @@ import (
 	"time"
 )
 
-type Lexer struct{}
+const (
+	lineLength = 72
+	idLength   = 10
+)
+
+const (
+	lineLengthError
+)
+
+type Lexer struct {
+	id int
+	attr
+}
+
 type Token struct{}
 
 func NewLexer() *Lexer {
