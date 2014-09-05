@@ -21,35 +21,35 @@ func TestGenerateTimeString(t *testing.T) {
 	})
 }
 
-func TestReadFile(t *testing.T) {
-	Convey("Given a file name", t, func() {
-		tempFile, _ := ioutil.TempFile(os.TempDir(), "testFile")
-		fileName := tempFile.Name()
+// func TestReadFile(t *testing.T) {
+// 	Convey("Given a file name", t, func() {
+// 		tempFile, _ := ioutil.TempFile(os.TempDir(), "testFile")
+// 		fileName := tempFile.Name()
 
-		testString := "I am some data!"
-		tempFile.WriteString(testString)
+// 		testString := "I am some data!"
+// 		tempFile.WriteString(testString)
 
-		Convey("If the file exists, it should return data", func() {
-			data, err := ReadFile(fileName)
-			So(string(data), ShouldEqual, testString)
-			So(err, ShouldBeNil)
-		})
+// 		Convey("If the file exists, it should return data", func() {
+// 			data, err := ReadFile(fileName)
+// 			So(string(data), ShouldEqual, testString)
+// 			So(err, ShouldBeNil)
+// 		})
 
-		Convey("If the file does not exist, it should return error", func() {
-			data, err := ReadFile("some_non_existent_file")
-			So(data, ShouldBeEmpty)
-			So(err, ShouldNotBeNil)
-		})
+// 		Convey("If the file does not exist, it should return error", func() {
+// 			data, err := ReadFile("some_non_existent_file")
+// 			So(data, ShouldBeEmpty)
+// 			So(err, ShouldNotBeNil)
+// 		})
 
-		Reset(func() {
-			os.Remove(fileName)
-		})
-	})
-}
+// 		Reset(func() {
+// 			os.Remove(fileName)
+// 		})
+// 	})
+// }
 
 func TestListingFile(t *testing.T) {
 	Convey("Given a listing file", t, func() {
-		listingFile := new(ListingFile)
+		listingFile := new(listingFile)
 		fileName := GenerateTimeString(time.Now()) + "_listing_file.txt"
 
 		Convey("Add a line to it", func() {

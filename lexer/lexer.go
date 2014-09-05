@@ -2,6 +2,8 @@ package lexer
 
 import (
 	"bytes"
+	"error"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"strconv"
@@ -9,16 +11,56 @@ import (
 	"time"
 )
 
-// ListingFile is a structure for the creation and saving of
+type Lexer struct{}
+type Token struct{}
+
+func NewLexer() *Lexer {
+	return new(Lexer)
+}
+
+func (lexer *Lexer) Begin(file string) error {
+	data, err := ReadFile(file)
+	if err != nil {
+		return err
+	}
+
+	dataSlice := strings.Split(data, "\n")
+	var list listingFile
+
+	// Main for loop that iterates over lines.
+	for _, line := range dataSlice {
+		tokens, err := lexer.Lex(line)
+		if err != nil {
+			return errors.New("Did not lex correctly.")
+		}
+		fmt.Println(tokens)
+	}
+
+	// Generate listing file.
+	fileName := GenerateTimeString(time.Now()) + "_listing_file.txt"
+	if err := list.Save(fileName); err != nil {
+		return errors.New("Did not lex correctly.")
+	} else {
+		fmt.Println("Listing file: " + fileName)
+	}
+
+	return nil // No errors
+}
+
+func (lexer *Lexer) Lex(line string) ([]Token, error) {
+	return make([]Token, 1), nil
+}
+
+// listingFile is a structure for the creation and saving of
 // a source code file during lexical analysis.
-type ListingFile struct {
+type listingFile struct {
 	buf     bytes.Buffer
 	counter int
 }
 
 // AddLine adds a line from the source code to the listing file.
 // It adds a line number at the beginning.
-func (listing *ListingFile) AddLine(line string) error {
+func (listing *listingFile) AddLine(line string) error {
 	lineNumber := strconv.Itoa(listing.counter + 1)
 	_, err := listing.buf.WriteString(lineNumber + ": " + line + "\n")
 	listing.counter += 1
@@ -27,7 +69,7 @@ func (listing *ListingFile) AddLine(line string) error {
 
 // AddError adds a line to the listing file describing an error.
 // It adds "LEXERR" to the front of the error.
-func (listing *ListingFile) AddError(line string) error {
+func (listing *listingFile) AddError(line string) error {
 	_, err := listing.buf.WriteString("LEXERR: " + line + "\n")
 	return err
 }
@@ -35,7 +77,7 @@ func (listing *ListingFile) AddError(line string) error {
 // Save takes a filename as a string and saves the file
 // to the file system. It saves to the same directory as
 // the lexer is called from.
-func (listing *ListingFile) Save(file string) error {
+func (listing *listingFile) Save(file string) error {
 	newFile, err := os.Create(file)
 	if err != nil {
 		return err
