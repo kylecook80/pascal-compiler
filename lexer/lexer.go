@@ -1,117 +1,111 @@
 package lexer
 
 import (
-	"bytes"
-	"errors"
+	// "bytes"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
-	"strconv"
-	"strings"
-	"time"
 )
 
+// Define constants and errors
 const (
 	lineLength = 72
 	idLength   = 10
 )
 
-const (
-	lineLengthError
-)
+var lineLengthError = fmt.Sprintf("The length of the line exceeds %d characters.", lineLength)
+var identifierLengthError = fmt.Sprintf("The length of the identifier exceeds %d characters.", idLength)
 
 type Lexer struct {
-	id int
-	attr
+	line int
+	pos  int
+	buf  [][]byte
 }
 
-type Token struct{}
-
-func NewLexer() *Lexer {
-	return new(Lexer)
+type Token struct {
+	id   string
+	attr string
 }
 
-func (lexer *Lexer) Begin(file string) error {
-	data, err := ReadFile(file)
-	if err != nil {
-		return err
-	}
-
-	dataSlice := strings.Split(data, "\n")
-	var list listingFile
-
-	// Main for loop that iterates over lines.
-	for _, line := range dataSlice {
-		tokens, err := lexer.Lex(line)
-		if err != nil {
-			return errors.New("Did not lex correctly.")
-		}
-		fmt.Println(tokens)
-	}
-
-	// Generate listing file.
-	fileName := GenerateTimeString(time.Now()) + "_listing_file.txt"
-	if err := list.Save(fileName); err != nil {
-		return errors.New("Did not lex correctly.")
-	} else {
-		fmt.Println("Listing file: " + fileName)
-	}
-
-	return nil // No errors
-}
-
-func (lexer *Lexer) Lex(line string) ([]Token, error) {
-	return make([]Token, 1), nil
-}
-
-// listingFile is a structure for the creation and saving of
-// a source code file during lexical analysis.
-type listingFile struct {
-	buf     bytes.Buffer
-	counter int
-}
-
-// AddLine adds a line from the source code to the listing file.
-// It adds a line number at the beginning.
-func (listing *listingFile) AddLine(line string) error {
-	lineNumber := strconv.Itoa(listing.counter + 1)
-	_, err := listing.buf.WriteString(lineNumber + ": " + line + "\n")
-	listing.counter += 1
-	return err
-}
-
-// AddError adds a line to the listing file describing an error.
-// It adds "LEXERR" to the front of the error.
-func (listing *listingFile) AddError(line string) error {
-	_, err := listing.buf.WriteString("LEXERR: " + line + "\n")
-	return err
-}
-
-// Save takes a filename as a string and saves the file
-// to the file system. It saves to the same directory as
-// the lexer is called from.
-func (listing *listingFile) Save(file string) error {
-	newFile, err := os.Create(file)
-	if err != nil {
-		return err
-	}
-	defer newFile.Close()
-
-	newFile.Write(listing.buf.Bytes())
-	return nil
-}
-
-// GenerateTimeString takes a time and formats it as an underscored
-// string, suitable for a filename.
-func GenerateTimeString(t time.Time) string {
-	formattedTime := t.Format("2006-01-2-15-04-05")
-	underscoreTime := strings.Replace(formattedTime, "-", "_", -1)
-	return underscoreTime
+func NewLexer() Lexer {
+	return Lexer{0, 0, nil}
 }
 
 // ReadFile takes a file and reads it into memory.
 // It is then returned as a string.
-func ReadFile(file string) (string, error) {
-	data, err := ioutil.ReadFile(file)
-	return string(data), err
+func (lexer Lexer) ReadFile(file string) {
+	openFile, err := os.Open(file)
+	if err != nil {
+		panic(err)
+	}
+	defer openFile.Close()
+
+	var fileBuf []byte
+	for {
+		n, err := openFile.Read(fileBuf)
+		if err != nil && err != io.EOF {
+			panic(err)
+		}
+		if n == 0 {
+			break
+		}
+		// lexer.buf = bytes.Split(fileBuf, []byte("\n"))
+	}
+
+	fmt.Println(fileBuf)
 }
+
+func (lexer Lexer) GetNextToken() Token {
+	nextLexeme := lexer.getNextLexeme()
+	fmt.Println(nextLexeme)
+
+	// if isIdentifier(nextLexeme) {
+	// 	return Token{"id", "symbol"}
+	// }
+
+	return Token{"catchall", ""}
+}
+
+func (lexer Lexer) getNextLexeme() []byte {
+	var nextChar byte
+	var tokenBuf []byte
+	fmt.Println(lexer.buf)
+	for string(nextChar) != " " {
+		nextChar = lexer.buf[lexer.line][lexer.pos]
+		tokenBuf = append(tokenBuf, nextChar)
+	}
+	return tokenBuf
+}
+
+func isIdentifier(lexeme []byte) bool {
+	return true
+}
+
+// func (lexer Lexer) Begin(file string) error {
+// 	data, err := ReadFile(file)
+// 	if err != nil {
+// 		return err
+// 	}
+
+// 	dataSlice := strings.Split(data, "\n")
+// 	var list listingFile
+
+// 	// Generate listing file.
+// 	fileName := GenerateTimeString(time.Now()) + "_listing_file.txt"
+// 	if err := list.Save(fileName); err != nil {
+// 		return err
+// 	} else {
+// 		fmt.Println("Listing file: " + fileName)
+// 	}
+
+// 	lexer.tokens = tokens
+// 	return nil // No errors
+// }
+
+// func (lexer Lexer) Lex(line string) ([]Token, error) {
+// 	lineBytes = []bytes(line)
+// 	hCounter = 0
+// 	tCounter = 0
+
+// 	return make([]Token, 1), nil
+// }

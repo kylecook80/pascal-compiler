@@ -1,0 +1,12 @@
+Token      Attr
+-----------------
+id         symbol_table
+res        null
+whitespace null
+longreal   null
+real       null
+int        null
+relop      type
+addop      type
+mulop      type
+catchall   null

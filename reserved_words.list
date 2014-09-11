@@ -12,3 +12,7 @@ then
 else
 while
 do
+and
+or
+not
+mod
