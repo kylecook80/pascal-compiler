@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-import "compiler/lexer"
+import "compiler/scanner"
 
 // listingFile is a structure for the creation and saving of
 // a source code file during lexical analysis.
@@ -63,9 +63,11 @@ func main() {
 
 	if len(args) > 1 {
 		file := args[1]
-		lexer := lexer.NewLexer()
-		lexer.ReadFile(file)
-		fmt.Println(lexer.GetNextToken())
+		scanner := scanner.NewScanner()
+		scanner.ReadFile(file)
+		for i := 0; i < 20; i++ {
+			scanner.GetNextToken()
+		}
 	} else {
 		fmt.Println("Please specify a file name.")
 	}

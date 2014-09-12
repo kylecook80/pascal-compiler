@@ -1,4 +1,4 @@
-package lexer
+package scanner
 
 // import (
 // 	. "github.com/smartystreets/goconvey/convey"
