@@ -73,6 +73,8 @@ func (scanner *Scanner) getNextLexeme() []byte {
 	for {
 		nextChar := scanner.peekNextChar()
 
+		// IDs and Reserved Words
+
 		// No more characters
 		if nextChar == byte(0) {
 			scanner.advance()
