@@ -69,6 +69,12 @@ func (scanner *Scanner) GetNextToken() (Token, error) {
 		// fmt.Printf("currentChar: %d\n", currentChar)
 		// fmt.Printf("posF: %d\n", scanner.posF)
 
+		// No more characters
+		if nextChar == byte(0) {
+			scanner.advance()
+			return lexBuf.bytes()
+		}
+
 		if currentChar == byte(0) {
 			break
 		} else {
