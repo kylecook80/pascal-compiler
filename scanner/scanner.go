@@ -2,6 +2,7 @@ package scanner
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -18,12 +19,9 @@ var identifierLengthError = fmt.Sprintf("The length of the identifier exceeds %d
 
 type Scanner struct {
 	line int
-	pos  int
-	buf  [][]byte
-}
-
-type Buffer struct {
-	buf []byte
+	posF int
+	posB int
+	buf  Buffer
 }
 
 type Token struct {
@@ -32,7 +30,11 @@ type Token struct {
 }
 
 func NewScanner() *Scanner {
-	return &Scanner{0, 0, nil}
+	return &Scanner{0, 0, 0, Buffer{}}
+}
+
+func (scanner *Scanner) Buffer() *Buffer {
+	return &scanner.buf
 }
 
 // ReadFile takes a file and reads it into memory.
@@ -45,7 +47,7 @@ func (scanner *Scanner) ReadFile(file string) {
 	defer openFile.Close()
 
 	readBuf := make([]byte, 1024)
-	fileBuf := make([]byte, 0)
+	fileBuf := new(Buffer)
 	for {
 		n, err := openFile.Read(readBuf)
 		if err != nil && err != io.EOF {
@@ -54,54 +56,87 @@ func (scanner *Scanner) ReadFile(file string) {
 		if n == 0 {
 			break
 		}
-		fileBuf = append(fileBuf, readBuf...)
+		fileBuf.add(readBuf...)
 	}
-	scanner.buf = bytes.Split(fileBuf, []byte("\n"))
+	scanner.buf = *fileBuf
 }
 
-func (scanner *Scanner) GetNextToken() Token {
-	nextLexeme := scanner.getNextLexeme()
-	if nextLexeme != nil {
-		fmt.Printf("%s\n", nextLexeme)
-	}
-	return Token{"catchall", ""}
-}
-
-func (scanner *Scanner) getNextLexeme() []byte {
-	var lexBuf Buffer
-
+func (scanner *Scanner) GetNextToken() (Token, error) {
+	lexBuf := new(Buffer)
 	for {
-		nextChar := scanner.peekNextChar()
+		currentChar, _ := scanner.currentChar()
 
-		// No more characters
-		if nextChar == byte(0) {
-			scanner.advance()
-			return lexBuf.bytes()
-		}
+		// fmt.Printf("currentChar: %d\n", currentChar)
+		// fmt.Printf("posF: %d\n", scanner.posF)
 
-		// 0 == null, 9 == \t, 10 == \n, 32 == Space, 59 = ;
-		if nextChar == byte(9) || nextChar == byte(10) || nextChar == byte(32) || nextChar == byte(59) {
-			scanner.advance()
+		if currentChar == byte(0) {
 			break
+		} else {
+			// 9 == \t, 10 == \n, 32 == Space, 59 = ;
+			if currentChar == byte(9) || currentChar == byte(10) || currentChar == byte(32) || currentChar == byte(59) {
+				scanner.advance()
+				break
+			}
+
+			switch currentChar {
+			case byte(40):
+				scanner.advance()
+				return Token{"lp", string(currentChar)}, nil
+			case byte(41):
+				scanner.advance()
+				return Token{"rp", string(currentChar)}, nil
+			case byte(39):
+				scanner.advance()
+				return Token{"qt", string(currentChar)}, nil
+			}
+
+			lexBuf.add(currentChar)
 		}
 
 		scanner.advance()
-		lexBuf.add(nextChar)
 	}
 
-	return lexBuf.bytes()
+	scanner.advance()
+	scanner.commit()
+
+	if bytes.Equal(lexBuf.bytes(), []byte("program")) {
+		return Token{"res", ""}, nil
+	}
+
+	return Token{}, fmt.Errorf("LEXERR: Unknown symbol %s", lexBuf.bytes())
+}
+
+func (scanner *Scanner) peekNextChar() (byte, error) {
+	nextChar := scanner.Buffer().At(scanner.posF + 1)
+	return nextChar, nil
+}
+
+func (scanner *Scanner) currentChar() (byte, error) {
+	if scanner.posF > len(scanner.buf.bytes()) {
+		return 0, errors.New("End of File Lex Error.")
+	}
+
+	return scanner.Buffer().At(scanner.posF), nil
 }
 
 func (scanner *Scanner) advance() {
-	nextChar := scanner.peekNextChar()
-	if nextChar == 0 && scanner.line < len(scanner.buf) {
-		scanner.line++
-		scanner.pos = 0
-	} else if scanner.line > len(scanner.buf) {
-		return
-	} else {
-		scanner.pos++
+	scanner.posF++
+}
+
+func (scanner *Scanner) commit() {
+	scanner.posB = scanner.posF
+}
+
+type Buffer struct {
+	buf []byte
+}
+
+func (buffer *Buffer) At(idx int) byte {
+	if idx < len(buffer.buf) {
+		return buffer.buf[idx]
 	}
+
+	return 0
 }
 
 func (buffer *Buffer) add(obj ...byte) {
@@ -110,17 +145,6 @@ func (buffer *Buffer) add(obj ...byte) {
 
 func (buffer *Buffer) bytes() []byte {
 	return buffer.buf
-}
-
-func (scanner *Scanner) peekNextChar() byte {
-	var nextChar byte
-
-	if scanner.line >= len(scanner.buf) || scanner.pos >= len(scanner.buf[scanner.line]) {
-		return 0
-	}
-
-	nextChar = scanner.buf[scanner.line][scanner.pos]
-	return nextChar
 }
 
 func isIdentifier(lexeme []byte) bool {

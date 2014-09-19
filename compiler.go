@@ -66,7 +66,8 @@ func main() {
 		scanner := scanner.NewScanner()
 		scanner.ReadFile(file)
 		for i := 0; i < 20; i++ {
-			scanner.GetNextToken()
+			// scanner.GetNextToken()
+			fmt.Println(scanner.GetNextToken())
 		}
 	} else {
 		fmt.Println("Please specify a file name.")
