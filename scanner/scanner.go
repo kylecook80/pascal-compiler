@@ -22,6 +22,7 @@ type Scanner struct {
 	posF int
 	posB int
 	buf  Buffer
+	res  Buffer
 }
 
 type Token struct {
@@ -30,16 +31,14 @@ type Token struct {
 }
 
 func NewScanner() *Scanner {
-	return &Scanner{0, 0, 0, Buffer{}}
+	return &Scanner{0, 0, 0, Buffer{}, Buffer{}}
 }
 
 func (scanner *Scanner) Buffer() *Buffer {
 	return &scanner.buf
 }
 
-// ReadFile takes a file and reads it into memory.
-// It is then returned as a string.
-func (scanner *Scanner) ReadFile(file string) {
+func (scanner *Scanner) readFile(file string) *Buffer {
 	openFile, err := os.Open(file)
 	if err != nil {
 		panic(err)
@@ -58,7 +57,19 @@ func (scanner *Scanner) ReadFile(file string) {
 		}
 		fileBuf.add(readBuf...)
 	}
-	scanner.buf = *fileBuf
+	return fileBuf
+}
+
+// ReadFile takes a file and reads it into memory.
+// It is then returned as a string.
+func (scanner *Scanner) ReadSourceFile(file string) {
+	buf := scanner.readFile(file)
+	scanner.buf = *buf
+}
+
+func (scanner *Scanner) ReadReservedFile(file string) {
+	buf := scanner.readFile(file)
+	scanner.res = *buf
 }
 
 func (scanner *Scanner) GetNextToken() (Token, error) {
@@ -70,9 +81,8 @@ func (scanner *Scanner) GetNextToken() (Token, error) {
 		// fmt.Printf("posF: %d\n", scanner.posF)
 
 		// No more characters
-		if nextChar == byte(0) {
-			scanner.advance()
-			return lexBuf.bytes()
+		if currentChar == byte(0) {
+			break
 		}
 
 		if currentChar == byte(0) {
@@ -80,7 +90,6 @@ func (scanner *Scanner) GetNextToken() (Token, error) {
 		} else {
 			// 9 == \t, 10 == \n, 32 == Space, 59 = ;
 			if currentChar == byte(9) || currentChar == byte(10) || currentChar == byte(32) || currentChar == byte(59) {
-				scanner.advance()
 				break
 			}
 
@@ -98,15 +107,17 @@ func (scanner *Scanner) GetNextToken() (Token, error) {
 
 			lexBuf.add(currentChar)
 		}
-
 		scanner.advance()
 	}
 
 	scanner.advance()
 	scanner.commit()
 
-	if bytes.Equal(lexBuf.bytes(), []byte("program")) {
-		return Token{"res", ""}, nil
+	lexeme := string(lexBuf.bytes())
+	for _, word := range scanner.ReservedWords() {
+		if lexeme == word {
+			return Token{"res", ""}, nil
+		}
 	}
 
 	return Token{}, fmt.Errorf("LEXERR: Unknown symbol %s", lexBuf.bytes())
@@ -131,6 +142,21 @@ func (scanner *Scanner) advance() {
 
 func (scanner *Scanner) commit() {
 	scanner.posB = scanner.posF
+}
+
+func (scanner *Scanner) ReservedWords() []string {
+	reservedBytes := scanner.res.bytes()
+	reservedWords := bytes.Split(reservedBytes, []byte("\n"))
+	reservedWordsStrings := convertToString(reservedWords)
+	return reservedWordsStrings
+}
+
+func convertToString(splitString [][]byte) []string {
+	newArray := make([]string, 0)
+	for _, word := range splitString {
+		newArray = append(newArray, string(word))
+	}
+	return newArray
 }
 
 type Buffer struct {

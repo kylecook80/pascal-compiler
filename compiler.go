@@ -64,7 +64,8 @@ func main() {
 	if len(args) > 1 {
 		file := args[1]
 		scanner := scanner.NewScanner()
-		scanner.ReadFile(file)
+		scanner.ReadReservedFile("reserved_words.list")
+		scanner.ReadSourceFile(file)
 		for i := 0; i < 20; i++ {
 			// scanner.GetNextToken()
 			fmt.Println(scanner.GetNextToken())
