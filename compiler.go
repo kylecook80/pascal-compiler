@@ -7,7 +7,7 @@ import (
 	"os"
 )
 
-import "compiler/scanner"
+import scan "compiler/scanner"
 import "compiler/util"
 
 func main() {
@@ -23,7 +23,7 @@ func main() {
 		listing := util.NewListingFile()
 		source := util.ReadFile(file)
 
-		scanner := scanner.NewScanner()
+		scanner := scan.NewScanner()
 		scanner.ReadReservedFile("reserved_words.list")
 		scanner.ReadSourceFile(file)
 
@@ -38,10 +38,12 @@ func main() {
 				break
 			} else if err != nil {
 				listing.AddError(err.Error())
+				fmt.Println(err)
 			} else {
 				fmt.Println(token)
 			}
 		}
+
 		listing.Save()
 	} else {
 		fmt.Println("Please specify a file name.")

@@ -2,7 +2,8 @@ package scanner
 
 import (
 	_ "bytes"
-	_ "fmt"
+	"errors"
+	"fmt"
 	"io"
 	"strconv"
 	"strings"
@@ -15,6 +16,13 @@ const (
 	lineLength = 72
 	idLength   = 10
 )
+
+var IntegerZero = errors.New("Integers cannot start with 0")
+
+type ScannerError struct {
+	msg string
+	inv string
+}
 
 type Scanner struct {
 	line int
@@ -56,6 +64,28 @@ func (scanner *Scanner) CurrentLineNumber() int {
 func (scanner *Scanner) NextToken() (Token, error) {
 	lexBuf := new(util.Buffer)
 
+	// Newlines and Tabs
+	for {
+		currentChar, err := scanner.currentChar()
+		if err != nil {
+			return Token{}, err
+		}
+
+		if currentChar == "\n" {
+			scanner.advance()
+			scanner.line++
+			continue
+		}
+
+		if currentChar == "\t" {
+			scanner.advance()
+			continue
+		}
+
+		scanner.commit()
+		break
+	}
+
 	// IDs / Reserved Words
 	for {
 		currentChar, err := scanner.currentChar()
@@ -72,13 +102,18 @@ func (scanner *Scanner) NextToken() (Token, error) {
 			scanner.advance()
 		} else {
 			scanner.commit()
-			return Token{"idres", lexBuf.String()}, nil
+			if scanner.isReservedWord(lexBuf.String()) {
+				return Token{"res", lexBuf.String()}, nil
+			} else {
+				return Token{"id", lexBuf.String()}, nil
+			}
 		}
 	}
 
-	scanner.commit()
+	scanner.reset()
 	lexBuf.Reset()
 
+	// Whitespace
 	for {
 		currentChar, err := scanner.currentChar()
 		if err != nil {
@@ -97,14 +132,138 @@ func (scanner *Scanner) NextToken() (Token, error) {
 		}
 	}
 
-	scanner.commit()
+	// scanner.reset()
+	// lexBuf.Reset()
+
+	// // Long Real
+	// for {
+
+	// }
+
+	// scanner.reset()
+	// lexBuf.Reset()
+
+	// // Real
+	// for {
+
+	// }
+
+	scanner.reset()
 	lexBuf.Reset()
 
+	// Integers
 	for {
+		currentChar, err := scanner.currentChar()
+		if err != nil {
+			return Token{}, err
+		}
 
+		if scanner.isFirstChar() && currentChar == "0" {
+			scanner.advance()
+			scanner.commit()
+			return Token{}, IntegerZero
+		}
+
+		if scanner.isFirstChar() && !isDigit(currentChar) {
+			break
+		}
+
+		if isDigit(currentChar) {
+			lexBuf.WriteString(currentChar)
+			scanner.advance()
+		} else {
+			scanner.commit()
+			return Token{"int", lexBuf.String()}, nil
+		}
 	}
 
-	return Token{lexBuf.String(), ""}, nil
+	scanner.reset()
+	lexBuf.Reset()
+
+	// scanner.reset()
+	// lexBuf.Reset()
+
+	// relop
+	// for {
+
+	// }
+
+	// scanner.reset()
+	// lexBuf.Reset()
+
+	// addop
+	// for {
+
+	// }
+
+	// scanner.reset()
+	// lexBuf.Reset()
+
+	// mulop
+	// for {
+
+	// }
+
+	// scanner.reset()
+	// lexBuf.Reset()
+
+	// Other
+	for {
+		currentChar, err := scanner.currentChar()
+		if err != nil {
+			return Token{}, err
+		}
+
+		if currentChar == "(" {
+			scanner.advance()
+			scanner.commit()
+			return Token{"lp", "("}, nil
+		} else if currentChar == ")" {
+			scanner.advance()
+			scanner.commit()
+			return Token{"rp", ")"}, nil
+		} else if currentChar == "[" {
+			scanner.advance()
+			scanner.commit()
+			return Token{"lb", "["}, nil
+		} else if currentChar == "]" {
+			scanner.advance()
+			scanner.commit()
+			return Token{"rb", "]"}, nil
+		} else if currentChar == ":" {
+			scanner.advance()
+			scanner.commit()
+			return Token{"col", ":"}, nil
+		} else if currentChar == "," {
+			scanner.advance()
+			scanner.commit()
+			return Token{"com", ","}, nil
+		} else if currentChar == ";" {
+			scanner.advance()
+			scanner.commit()
+			return Token{"scol", ";"}, nil
+		} else if currentChar == "=" {
+			scanner.advance()
+			scanner.commit()
+			return Token{"eq", "="}, nil
+		} else if currentChar == "." {
+			scanner.advance()
+			scanner.commit()
+			return Token{"end", "."}, nil
+		} else {
+			break
+		}
+	}
+
+	scanner.reset()
+	lexBuf.Reset()
+
+	currentChar, _ := scanner.currentChar()
+
+	scanner.advance()
+	scanner.commit()
+
+	return Token{"err", currentChar}, fmt.Errorf("Invalid character: %s", currentChar)
 }
 
 func isChar(char string) bool {
