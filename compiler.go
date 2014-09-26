@@ -24,7 +24,7 @@ func main() {
 		source := util.ReadFile(file)
 
 		scanner := scan.NewScanner()
-		scanner.ReadReservedFile("reserved_words.list")
+		scanner.ReadReservedFile("scanner/reserved_words.list")
 		scanner.ReadSourceFile(file)
 
 		for {

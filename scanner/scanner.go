@@ -18,6 +18,7 @@ const (
 )
 
 var IntegerZero = errors.New("Integers cannot start with 0")
+var MalformedNumber = errors.New("Number is malformed")
 
 type ScannerError struct {
 	msg string
@@ -132,21 +133,112 @@ func (scanner *Scanner) NextToken() (Token, error) {
 		}
 	}
 
-	// scanner.reset()
-	// lexBuf.Reset()
+	scanner.reset()
+	lexBuf.Reset()
 
-	// // Long Real
-	// for {
+	// Long Real
+	var period bool = true
+	var exponent bool = false
+	var mustBePeriod bool = false
+	for {
+		currentChar, err := scanner.currentChar()
+		if err != nil {
+			return Token{}, err
+		}
 
-	// }
+		if scanner.isFirstChar() && !isDigit(currentChar) {
+			break
+		}
 
-	// scanner.reset()
-	// lexBuf.Reset()
+		if scanner.isFirstChar() && currentChar == "0" {
+			mustBePeriod = true
+			scanner.advance()
+			continue
+		}
 
-	// // Real
-	// for {
+		if currentChar != "." && mustBePeriod == true {
+			scanner.advance()
+			scanner.commit()
+			return Token{}, MalformedNumber
+		}
 
-	// }
+		if currentChar == "." && period == false {
+			scanner.advance()
+			scanner.commit()
+			return Token{}, MalformedNumber
+		}
+
+		if currentChar == "E" && exponent == false {
+			scanner.advance()
+			scanner.commit()
+			return Token{}, MalformedNumber
+		}
+
+		if isDigit(currentChar) {
+			lexBuf.WriteString(currentChar)
+			scanner.advance()
+		} else if currentChar == "." {
+			period = false
+			exponent = true
+			mustBePeriod = false
+			lexBuf.WriteString(currentChar)
+			scanner.advance()
+		} else if currentChar == "E" {
+			exponent = false
+			scanner.advance()
+		} else {
+			scanner.commit()
+			return Token{"lgrl", lexBuf.String()}, nil
+		}
+	}
+
+	scanner.reset()
+	lexBuf.Reset()
+
+	// Real
+	period = true
+	mustBePeriod = false
+	for {
+		currentChar, err := scanner.currentChar()
+		if err != nil {
+			return Token{}, err
+		}
+
+		if scanner.isFirstChar() && !isDigit(currentChar) {
+			break
+		}
+
+		if scanner.isFirstChar() && currentChar == "0" {
+			mustBePeriod = true
+			scanner.advance()
+			continue
+		}
+
+		if currentChar != "." && mustBePeriod == true {
+			scanner.advance()
+			scanner.commit()
+			return Token{}, MalformedNumber
+		}
+
+		if currentChar == "." && period == false {
+			scanner.advance()
+			scanner.commit()
+			return Token{}, MalformedNumber
+		}
+
+		if isDigit(currentChar) {
+			lexBuf.WriteString(currentChar)
+			scanner.advance()
+		} else if currentChar == "." {
+			period = false
+			mustBePeriod = false
+			lexBuf.WriteString(currentChar)
+			scanner.advance()
+		} else {
+			scanner.commit()
+			return Token{"real", lexBuf.String()}, nil
+		}
+	}
 
 	scanner.reset()
 	lexBuf.Reset()
@@ -180,32 +272,123 @@ func (scanner *Scanner) NextToken() (Token, error) {
 	scanner.reset()
 	lexBuf.Reset()
 
-	// scanner.reset()
-	// lexBuf.Reset()
-
 	// relop
-	// for {
+	var lt bool = false
+	var gt bool = false
+	var colon bool = false
+	for {
+		currentChar, err := scanner.currentChar()
+		if err != nil {
+			return Token{}, err
+		}
 
-	// }
+		if currentChar == "<" && scanner.isFirstChar() {
+			scanner.advance()
+			lt = true
+			lexBuf.WriteString(currentChar)
+			continue
+		}
 
-	// scanner.reset()
-	// lexBuf.Reset()
+		if currentChar == ">" && scanner.isFirstChar() {
+			scanner.advance()
+
+			if lt == true {
+				scanner.commit()
+				return Token{"relop", "<>"}, nil
+			} else {
+				gt = true
+			}
+
+			lexBuf.WriteString(currentChar)
+			continue
+		}
+
+		if currentChar == ":" && scanner.isFirstChar() {
+			scanner.advance()
+			colon = true
+			lexBuf.WriteString(currentChar)
+			continue
+		} else if currentChar == "=" {
+			scanner.advance()
+
+			if lt == true {
+				scanner.commit()
+				return Token{"relop", "<="}, nil
+			}
+
+			if gt == true {
+				scanner.commit()
+				return Token{"relop", ">="}, nil
+			}
+
+			if colon == true {
+				scanner.commit()
+				return Token{"relop", ":="}, nil
+			}
+			break
+		}
+
+		if !scanner.isFirstChar() {
+			return Token{"relop", currentChar}, nil
+		} else {
+			break
+		}
+	}
+
+	scanner.reset()
+	lexBuf.Reset()
 
 	// addop
-	// for {
+	for {
+		currentChar, err := scanner.currentChar()
+		if err != nil {
+			return Token{}, err
+		}
 
-	// }
+		if currentChar == "+" {
+			scanner.advance()
+			scanner.commit()
+			return Token{"addop", currentChar}, nil
+		}
 
-	// scanner.reset()
-	// lexBuf.Reset()
+		if currentChar == "-" {
+			scanner.advance()
+			scanner.commit()
+			return Token{"addop", currentChar}, nil
+		}
+
+		scanner.advance()
+		break
+	}
+
+	scanner.reset()
+	lexBuf.Reset()
 
 	// mulop
-	// for {
+	for {
+		currentChar, err := scanner.currentChar()
+		if err != nil {
+			return Token{}, err
+		}
 
-	// }
+		if currentChar == "*" {
+			scanner.advance()
+			scanner.commit()
+			return Token{"mulop", currentChar}, nil
+		}
 
-	// scanner.reset()
-	// lexBuf.Reset()
+		if currentChar == "/" {
+			scanner.advance()
+			scanner.commit()
+			return Token{"mulop", currentChar}, nil
+		}
+
+		scanner.advance()
+		break
+	}
+
+	scanner.reset()
+	lexBuf.Reset()
 
 	// Other
 	for {
@@ -230,10 +413,6 @@ func (scanner *Scanner) NextToken() (Token, error) {
 			scanner.advance()
 			scanner.commit()
 			return Token{"rb", "]"}, nil
-		} else if currentChar == ":" {
-			scanner.advance()
-			scanner.commit()
-			return Token{"col", ":"}, nil
 		} else if currentChar == "," {
 			scanner.advance()
 			scanner.commit()
@@ -242,6 +421,10 @@ func (scanner *Scanner) NextToken() (Token, error) {
 			scanner.advance()
 			scanner.commit()
 			return Token{"scol", ";"}, nil
+		} else if currentChar == ":" {
+			scanner.advance()
+			scanner.commit()
+			return Token{"col", ":"}, nil
 		} else if currentChar == "=" {
 			scanner.advance()
 			scanner.commit()

@@ -42,7 +42,7 @@ func (listing *ListingFile) LineCount() int {
 // to the file system. It saves to the same directory as
 // the lexer is called from.
 func (listing *ListingFile) Save() error {
-	file := GenerateTimeString(time.Now())
+	file := GenerateTimeString(time.Now()) + "_listing_file.txt"
 	newFile, err := os.Create(file)
 	if err != nil {
 		return err
