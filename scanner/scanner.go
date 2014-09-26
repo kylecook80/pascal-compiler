@@ -16,8 +16,8 @@ const (
 	idLength   = 10
 )
 
-var IntegerZero = errors.New("Integers cannot start with 0")
 var MalformedNumber = errors.New("Number is malformed")
+var LengthError = errors.New("Identifier or Number is too long")
 
 type ScannerError struct {
 	msg string
@@ -25,11 +25,12 @@ type ScannerError struct {
 }
 
 type Scanner struct {
-	line int
-	posF int
-	posB int
-	buf  util.Buffer
-	res  util.Buffer
+	line       int
+	lineLength int
+	posF       int
+	posB       int
+	buf        util.Buffer
+	res        util.Buffer
 }
 
 func NewScanner() *Scanner {
@@ -139,6 +140,10 @@ func (scanner *Scanner) NextToken() (Token, error) {
 		currentChar, err := scanner.currentChar()
 		if err != nil {
 			return Token{}, err
+		}
+
+		if scanner.currentLength() > idLength {
+			return Token{}, LengthError
 		}
 
 		if scanner.isFirstChar() && !isDigit(currentChar) {
@@ -265,7 +270,7 @@ func (scanner *Scanner) NextToken() (Token, error) {
 			lexBuf.WriteString(currentChar)
 			scanner.advance()
 			scanner.commit()
-			return Token{}, IntegerZero
+			return Token{}, MalformedNumber
 		}
 
 		if scanner.isFirstChar() && !isDigit(currentChar) {
@@ -313,7 +318,6 @@ func (scanner *Scanner) NextToken() (Token, error) {
 	// relop
 	var lt bool = false
 	var gt bool = false
-	var colon bool = false
 	for {
 		currentChar, err := scanner.currentChar()
 		if err != nil {
@@ -341,12 +345,7 @@ func (scanner *Scanner) NextToken() (Token, error) {
 			continue
 		}
 
-		if currentChar == ":" && scanner.isFirstChar() {
-			lexBuf.WriteString(currentChar)
-			scanner.advance()
-			colon = true
-			continue
-		} else if currentChar == "=" {
+		if currentChar == "=" {
 			lexBuf.WriteString(currentChar)
 			scanner.advance()
 
@@ -360,11 +359,8 @@ func (scanner *Scanner) NextToken() (Token, error) {
 				return Token{RELOP, GREATER_EQ, lexBuf.String()}, nil
 			}
 
-			if colon == true {
-				scanner.commit()
-				return Token{RELOP, EQ, lexBuf.String()}, nil
-			}
-			break
+			scanner.commit()
+			return Token{RELOP, EQ, lexBuf.String()}, nil
 		}
 
 		if !scanner.isFirstChar() {
