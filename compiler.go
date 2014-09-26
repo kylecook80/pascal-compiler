@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 	"io"
-	_ "io/ioutil"
 	"os"
+	"strconv"
 )
 
 import scan "compiler/scanner"
@@ -40,7 +40,8 @@ func main() {
 				listing.AddError(err.Error())
 				fmt.Println(err)
 			} else {
-				fmt.Println(token)
+				line := scanner.CurrentLineNumber() + 1
+				fmt.Println(strconv.Itoa(line) + ": " + token.String())
 			}
 		}
 

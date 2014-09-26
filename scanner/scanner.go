@@ -1,7 +1,6 @@
 package scanner
 
 import (
-	_ "bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -31,11 +30,6 @@ type Scanner struct {
 	posB int
 	buf  util.Buffer
 	res  util.Buffer
-}
-
-type Token struct {
-	id   string
-	attr string
 }
 
 func NewScanner() *Scanner {
@@ -104,9 +98,9 @@ func (scanner *Scanner) NextToken() (Token, error) {
 		} else {
 			scanner.commit()
 			if scanner.isReservedWord(lexBuf.String()) {
-				return Token{"res", lexBuf.String()}, nil
+				return Token{RES, NULL, lexBuf.String()}, nil
 			} else {
-				return Token{"id", lexBuf.String()}, nil
+				return Token{ID, NULL, lexBuf.String()}, nil
 			}
 		}
 	}
@@ -129,7 +123,7 @@ func (scanner *Scanner) NextToken() (Token, error) {
 			scanner.advance()
 		} else {
 			scanner.commit()
-			return Token{"ws", ""}, nil
+			return Token{WS, NULL, lexBuf.String()}, nil
 		}
 	}
 
@@ -140,6 +134,7 @@ func (scanner *Scanner) NextToken() (Token, error) {
 	var period bool = true
 	var exponent bool = false
 	var mustBePeriod bool = false
+	var foundExponent bool = false
 	for {
 		currentChar, err := scanner.currentChar()
 		if err != nil {
@@ -151,24 +146,29 @@ func (scanner *Scanner) NextToken() (Token, error) {
 		}
 
 		if scanner.isFirstChar() && currentChar == "0" {
+			lexBuf.WriteString(currentChar)
 			mustBePeriod = true
 			scanner.advance()
+
 			continue
 		}
 
 		if currentChar != "." && mustBePeriod == true {
+			lexBuf.WriteString(currentChar)
 			scanner.advance()
 			scanner.commit()
 			return Token{}, MalformedNumber
 		}
 
 		if currentChar == "." && period == false {
+			lexBuf.WriteString(currentChar)
 			scanner.advance()
 			scanner.commit()
 			return Token{}, MalformedNumber
 		}
 
 		if currentChar == "E" && exponent == false {
+			lexBuf.WriteString(currentChar)
 			scanner.advance()
 			scanner.commit()
 			return Token{}, MalformedNumber
@@ -178,17 +178,21 @@ func (scanner *Scanner) NextToken() (Token, error) {
 			lexBuf.WriteString(currentChar)
 			scanner.advance()
 		} else if currentChar == "." {
+			lexBuf.WriteString(currentChar)
 			period = false
 			exponent = true
 			mustBePeriod = false
-			lexBuf.WriteString(currentChar)
 			scanner.advance()
 		} else if currentChar == "E" {
+			lexBuf.WriteString(currentChar)
 			exponent = false
+			foundExponent = true
 			scanner.advance()
-		} else {
+		} else if foundExponent {
 			scanner.commit()
-			return Token{"lgrl", lexBuf.String()}, nil
+			return Token{LONG_REAL, NULL, lexBuf.String()}, nil
+		} else {
+			break
 		}
 	}
 
@@ -198,6 +202,7 @@ func (scanner *Scanner) NextToken() (Token, error) {
 	// Real
 	period = true
 	mustBePeriod = false
+	var foundPeriod bool = false
 	for {
 		currentChar, err := scanner.currentChar()
 		if err != nil {
@@ -209,18 +214,21 @@ func (scanner *Scanner) NextToken() (Token, error) {
 		}
 
 		if scanner.isFirstChar() && currentChar == "0" {
+			lexBuf.WriteString(currentChar)
 			mustBePeriod = true
 			scanner.advance()
 			continue
 		}
 
 		if currentChar != "." && mustBePeriod == true {
+			lexBuf.WriteString(currentChar)
 			scanner.advance()
 			scanner.commit()
 			return Token{}, MalformedNumber
 		}
 
 		if currentChar == "." && period == false {
+			lexBuf.WriteString(currentChar)
 			scanner.advance()
 			scanner.commit()
 			return Token{}, MalformedNumber
@@ -230,13 +238,16 @@ func (scanner *Scanner) NextToken() (Token, error) {
 			lexBuf.WriteString(currentChar)
 			scanner.advance()
 		} else if currentChar == "." {
+			lexBuf.WriteString(currentChar)
 			period = false
 			mustBePeriod = false
-			lexBuf.WriteString(currentChar)
+			foundPeriod = true
 			scanner.advance()
-		} else {
+		} else if foundPeriod {
 			scanner.commit()
-			return Token{"real", lexBuf.String()}, nil
+			return Token{REAL, NULL, lexBuf.String()}, nil
+		} else {
+			break
 		}
 	}
 
@@ -251,6 +262,7 @@ func (scanner *Scanner) NextToken() (Token, error) {
 		}
 
 		if scanner.isFirstChar() && currentChar == "0" {
+			lexBuf.WriteString(currentChar)
 			scanner.advance()
 			scanner.commit()
 			return Token{}, IntegerZero
@@ -265,8 +277,34 @@ func (scanner *Scanner) NextToken() (Token, error) {
 			scanner.advance()
 		} else {
 			scanner.commit()
-			return Token{"int", lexBuf.String()}, nil
+			return Token{INT, NULL, lexBuf.String()}, nil
 		}
+	}
+
+	scanner.reset()
+	lexBuf.Reset()
+
+	// assignop
+	for {
+		currentChar, err := scanner.currentChar()
+		if err != nil {
+			return Token{}, err
+		}
+
+		if scanner.isFirstChar() && currentChar == ":" {
+			lexBuf.WriteString(currentChar)
+			scanner.advance()
+			continue
+		}
+
+		if lexBuf.String() == ":" && currentChar == "=" {
+			lexBuf.WriteString(currentChar)
+			scanner.advance()
+			scanner.commit()
+			return Token{ASSIGNOP, NULL, lexBuf.String()}, nil
+		}
+
+		break
 	}
 
 	scanner.reset()
@@ -283,53 +321,59 @@ func (scanner *Scanner) NextToken() (Token, error) {
 		}
 
 		if currentChar == "<" && scanner.isFirstChar() {
+			lexBuf.WriteString(currentChar)
 			scanner.advance()
 			lt = true
-			lexBuf.WriteString(currentChar)
 			continue
 		}
 
 		if currentChar == ">" && scanner.isFirstChar() {
+			lexBuf.WriteString(currentChar)
 			scanner.advance()
 
 			if lt == true {
 				scanner.commit()
-				return Token{"relop", "<>"}, nil
+				return Token{RELOP, NOT_EQ, lexBuf.String()}, nil
 			} else {
 				gt = true
 			}
 
-			lexBuf.WriteString(currentChar)
 			continue
 		}
 
 		if currentChar == ":" && scanner.isFirstChar() {
+			lexBuf.WriteString(currentChar)
 			scanner.advance()
 			colon = true
-			lexBuf.WriteString(currentChar)
 			continue
 		} else if currentChar == "=" {
+			lexBuf.WriteString(currentChar)
 			scanner.advance()
 
 			if lt == true {
 				scanner.commit()
-				return Token{"relop", "<="}, nil
+				return Token{RELOP, LESS_EQ, lexBuf.String()}, nil
 			}
 
 			if gt == true {
 				scanner.commit()
-				return Token{"relop", ">="}, nil
+				return Token{RELOP, GREATER_EQ, lexBuf.String()}, nil
 			}
 
 			if colon == true {
 				scanner.commit()
-				return Token{"relop", ":="}, nil
+				return Token{RELOP, EQ, lexBuf.String()}, nil
 			}
 			break
 		}
 
 		if !scanner.isFirstChar() {
-			return Token{"relop", currentChar}, nil
+			lexBuf.WriteString(currentChar)
+			if currentChar == "<" {
+				return Token{RELOP, LESS, lexBuf.String()}, nil
+			} else {
+				return Token{RELOP, GREATER, lexBuf.String()}, nil
+			}
 		} else {
 			break
 		}
@@ -346,15 +390,17 @@ func (scanner *Scanner) NextToken() (Token, error) {
 		}
 
 		if currentChar == "+" {
+			lexBuf.WriteString(currentChar)
 			scanner.advance()
 			scanner.commit()
-			return Token{"addop", currentChar}, nil
+			return Token{ADDOP, ADD, lexBuf.String()}, nil
 		}
 
 		if currentChar == "-" {
+			lexBuf.WriteString(currentChar)
 			scanner.advance()
 			scanner.commit()
-			return Token{"addop", currentChar}, nil
+			return Token{ADDOP, SUB, lexBuf.String()}, nil
 		}
 
 		scanner.advance()
@@ -372,15 +418,17 @@ func (scanner *Scanner) NextToken() (Token, error) {
 		}
 
 		if currentChar == "*" {
+			lexBuf.WriteString(currentChar)
 			scanner.advance()
 			scanner.commit()
-			return Token{"mulop", currentChar}, nil
+			return Token{MULOP, MUL, lexBuf.String()}, nil
 		}
 
 		if currentChar == "/" {
+			lexBuf.WriteString(currentChar)
 			scanner.advance()
 			scanner.commit()
-			return Token{"mulop", currentChar}, nil
+			return Token{MULOP, DIV, lexBuf.String()}, nil
 		}
 
 		scanner.advance()
@@ -397,42 +445,40 @@ func (scanner *Scanner) NextToken() (Token, error) {
 			return Token{}, err
 		}
 
+		lexBuf.WriteString(currentChar)
+
 		if currentChar == "(" {
 			scanner.advance()
 			scanner.commit()
-			return Token{"lp", "("}, nil
+			return Token{LEFT_PAREN, NULL, lexBuf.String()}, nil
 		} else if currentChar == ")" {
 			scanner.advance()
 			scanner.commit()
-			return Token{"rp", ")"}, nil
+			return Token{RIGHT_PAREN, NULL, lexBuf.String()}, nil
 		} else if currentChar == "[" {
 			scanner.advance()
 			scanner.commit()
-			return Token{"lb", "["}, nil
+			return Token{LEFT_BRACKET, NULL, lexBuf.String()}, nil
 		} else if currentChar == "]" {
 			scanner.advance()
 			scanner.commit()
-			return Token{"rb", "]"}, nil
+			return Token{RIGHT_BRACKET, NULL, lexBuf.String()}, nil
 		} else if currentChar == "," {
 			scanner.advance()
 			scanner.commit()
-			return Token{"com", ","}, nil
+			return Token{COMMA, NULL, lexBuf.String()}, nil
 		} else if currentChar == ";" {
 			scanner.advance()
 			scanner.commit()
-			return Token{"scol", ";"}, nil
+			return Token{SEMI, NULL, lexBuf.String()}, nil
 		} else if currentChar == ":" {
 			scanner.advance()
 			scanner.commit()
-			return Token{"col", ":"}, nil
-		} else if currentChar == "=" {
-			scanner.advance()
-			scanner.commit()
-			return Token{"eq", "="}, nil
+			return Token{COLON, NULL, lexBuf.String()}, nil
 		} else if currentChar == "." {
 			scanner.advance()
 			scanner.commit()
-			return Token{"end", "."}, nil
+			return Token{END, NULL, lexBuf.String()}, nil
 		} else {
 			break
 		}
@@ -446,7 +492,7 @@ func (scanner *Scanner) NextToken() (Token, error) {
 	scanner.advance()
 	scanner.commit()
 
-	return Token{"err", currentChar}, fmt.Errorf("Invalid character: %s", currentChar)
+	return Token{LEXERR, UNREC, lexBuf.String()}, fmt.Errorf("Invalid character: %s", currentChar)
 }
 
 func isChar(char string) bool {
@@ -551,61 +597,3 @@ func (scanner *Scanner) isReservedWord(word string) bool {
 
 	return false
 }
-
-// func (scanner *Scanner) NextToken() (Token, error) {
-// 	lexBuf := new(bytes.Buffer)
-// 	for {
-// 		currentChar, err := scanner.currentChar()
-
-// 		if err != nil {
-// 			return Token{}, err
-// 		}
-
-// 		// No more characters
-// 		if []byte(currentChar)[0] == byte(0) {
-// 			return Token{}, io.EOF
-// 		} else {
-// 			if currentChar == "\n" {
-// 				scanner.line++
-// 				break
-// 			}
-
-// 			if currentChar == "\t" || currentChar == " " {
-// 				break
-// 			}
-
-// 			lexeme := string(lexBuf.Bytes())
-// 			for _, word := range scanner.ReservedWords() {
-// 				if lexeme == word {
-// 					return Token{"res", word}, nil
-// 				}
-// 			}
-
-// 			switch currentChar {
-// 			case "(":
-// 				scanner.advance()
-// 				return Token{"lp", string(currentChar)}, nil
-// 			case ")":
-// 				scanner.advance()
-// 				return Token{"rp", string(currentChar)}, nil
-// 			case ":":
-// 				scanner.advance()
-// 				return Token{"col", string(currentChar)}, nil
-// 			case ";":
-// 				scanner.advance()
-// 				return Token{"scol", string(currentChar)}, nil
-// 			case ",":
-// 				scanner.advance()
-// 				return Token{"com", string(currentChar)}, nil
-// 			}
-
-// 			lexBuf.WriteString(currentChar)
-// 		}
-// 		scanner.advance()
-// 	}
-
-// 	scanner.advance()
-// 	scanner.commit()
-
-// 	return Token{}, fmt.Errorf("Unknown symbol")
-// }

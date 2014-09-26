@@ -8,11 +8,11 @@ procedure
 begin
 end
 if
-then
-else
-while
-do
-and
+then 
+else 
+while 
+do 
+and 
 or
 not
 mod
