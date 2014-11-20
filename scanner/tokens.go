@@ -127,6 +127,14 @@ var AttrStrings []string = []string{
 	DIV:             "DIV",
 }
 
+func (tok Token) Type() TokenType {
+	return tok.id
+}
+
+func (tok Token) Value() string {
+	return tok.lexeme
+}
+
 func (tok Token) String() string {
 	if tok.id < 0 || int(tok.id) >= len(TokenStrings) {
 		return "Unknown"

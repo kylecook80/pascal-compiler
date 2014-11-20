@@ -3,8 +3,10 @@ package main
 import (
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"strconv"
+	"time"
 )
 
 import scan "compiler/scanner"
@@ -13,12 +15,10 @@ import "compiler/util"
 func main() {
 	// Get the arguments passed to the compiler
 	args := os.Args
+	// symbolTable := make(map[string]interface{})
 
 	if len(args) > 1 {
 		file := args[1]
-		// data, _ := ioutil.ReadFile(file)
-
-		// fmt.Printf("%q", data)
 
 		listing := util.NewListingFile()
 		source := util.ReadFile(file)
@@ -27,24 +27,30 @@ func main() {
 		scanner.ReadReservedFile("scanner/reserved_words.list")
 		scanner.ReadSourceFile(file)
 
+		tokenFile := []byte{}
+
 		for {
 			if scanner.CurrentLineNumber() >= listing.LineCount() {
 				listing.AddLine(source.ReadLine(scanner.CurrentLineNumber()))
 			}
 
 			token, err := scanner.NextToken()
+			fmt.Println(token)
+			// if token.Type() == scan.ID && token.Value()
 
 			if err == io.EOF {
 				break
 			} else if err != nil {
 				listing.AddError(err.Error())
-				fmt.Println(err)
 			} else {
 				line := scanner.CurrentLineNumber() + 1
-				fmt.Println(strconv.Itoa(line) + ": " + token.String())
+				if token.Type() != scan.WS {
+					tokenFile = append(tokenFile, []byte(strconv.Itoa(line)+": "+token.String()+"\n")...)
+				}
 			}
 		}
 
+		ioutil.WriteFile(util.GenerateTimeString(time.Now())+"_token_file.txt", tokenFile, 0644)
 		listing.Save()
 	} else {
 		fmt.Println("Please specify a file name.")

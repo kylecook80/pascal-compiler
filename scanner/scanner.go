@@ -16,7 +16,7 @@ const (
 	idLength   = 10
 )
 
-var MalformedNumber = errors.New("Number is malformed")
+// var MalformedNumber = errors.New("Number is malformed")
 var LengthError = errors.New("Identifier or Number is too long")
 
 type ScannerError struct {
@@ -62,6 +62,7 @@ func (scanner *Scanner) NextToken() (Token, error) {
 
 	// Newlines and Tabs
 	for {
+		// fmt.Println("Newlines")
 		currentChar, err := scanner.currentChar()
 		if err != nil {
 			return Token{}, err
@@ -84,9 +85,14 @@ func (scanner *Scanner) NextToken() (Token, error) {
 
 	// IDs / Reserved Words
 	for {
+		// fmt.Println("IDs")
 		currentChar, err := scanner.currentChar()
 		if err != nil {
 			return Token{}, err
+		}
+
+		if scanner.currentLength() > idLength {
+			return Token{}, LengthError
 		}
 
 		if scanner.isFirstChar() && !isChar(currentChar) {
@@ -101,7 +107,8 @@ func (scanner *Scanner) NextToken() (Token, error) {
 			if scanner.isReservedWord(lexBuf.String()) {
 				return Token{RES, NULL, lexBuf.String()}, nil
 			} else {
-				return Token{ID, NULL, lexBuf.String()}, nil
+				str := lexBuf.String()
+				return Token{ID, NULL, str}, nil
 			}
 		}
 	}
@@ -111,6 +118,7 @@ func (scanner *Scanner) NextToken() (Token, error) {
 
 	// Whitespace
 	for {
+		// fmt.Println("WS")
 		currentChar, err := scanner.currentChar()
 		if err != nil {
 			return Token{}, err
@@ -132,11 +140,8 @@ func (scanner *Scanner) NextToken() (Token, error) {
 	lexBuf.Reset()
 
 	// Long Real
-	var period bool = true
-	var exponent bool = false
-	var mustBePeriod bool = false
-	var foundExponent bool = false
 	for {
+		// fmt.Println("Long Real")
 		currentChar, err := scanner.currentChar()
 		if err != nil {
 			return Token{}, err
@@ -151,53 +156,42 @@ func (scanner *Scanner) NextToken() (Token, error) {
 		}
 
 		if scanner.isFirstChar() && currentChar == "0" {
-			lexBuf.WriteString(currentChar)
-			mustBePeriod = true
-			scanner.advance()
-
-			continue
+			if scanner.peek() == "." {
+				lexBuf.WriteString(currentChar)
+				scanner.advance()
+				continue
+			} else {
+				break
+			}
 		}
 
-		if currentChar != "." && mustBePeriod == true {
-			lexBuf.WriteString(currentChar)
-			scanner.advance()
-			scanner.commit()
-			return Token{}, MalformedNumber
+		if !scanner.isFirstChar() && currentChar == "." {
+			if isDigit(scanner.peek()) {
+				lexBuf.WriteString(currentChar)
+				scanner.advance()
+				continue
+			} else {
+				break
+			}
 		}
 
-		if currentChar == "." && period == false {
-			lexBuf.WriteString(currentChar)
-			scanner.advance()
-			scanner.commit()
-			return Token{}, MalformedNumber
-		}
-
-		if currentChar == "E" && exponent == false {
-			lexBuf.WriteString(currentChar)
-			scanner.advance()
-			scanner.commit()
-			return Token{}, MalformedNumber
+		if !scanner.isFirstChar() && currentChar == "E" {
+			if isDigit(scanner.peek()) {
+				lexBuf.WriteString(currentChar)
+				scanner.advance()
+				continue
+			} else {
+				break
+			}
 		}
 
 		if isDigit(currentChar) {
 			lexBuf.WriteString(currentChar)
 			scanner.advance()
-		} else if currentChar == "." {
-			lexBuf.WriteString(currentChar)
-			period = false
-			exponent = true
-			mustBePeriod = false
-			scanner.advance()
-		} else if currentChar == "E" {
-			lexBuf.WriteString(currentChar)
-			exponent = false
-			foundExponent = true
-			scanner.advance()
-		} else if foundExponent {
+			continue
+		} else {
 			scanner.commit()
 			return Token{LONG_REAL, NULL, lexBuf.String()}, nil
-		} else {
-			break
 		}
 	}
 
@@ -205,13 +199,15 @@ func (scanner *Scanner) NextToken() (Token, error) {
 	lexBuf.Reset()
 
 	// Real
-	period = true
-	mustBePeriod = false
-	var foundPeriod bool = false
 	for {
+		// fmt.Println("Real")
 		currentChar, err := scanner.currentChar()
 		if err != nil {
 			return Token{}, err
+		}
+
+		if scanner.currentLength() > idLength {
+			return Token{}, LengthError
 		}
 
 		if scanner.isFirstChar() && !isDigit(currentChar) {
@@ -219,40 +215,32 @@ func (scanner *Scanner) NextToken() (Token, error) {
 		}
 
 		if scanner.isFirstChar() && currentChar == "0" {
-			lexBuf.WriteString(currentChar)
-			mustBePeriod = true
-			scanner.advance()
-			continue
+			if scanner.peek() == "." {
+				lexBuf.WriteString(currentChar)
+				scanner.advance()
+				continue
+			} else {
+				break
+			}
 		}
 
-		if currentChar != "." && mustBePeriod == true {
-			lexBuf.WriteString(currentChar)
-			scanner.advance()
-			scanner.commit()
-			return Token{}, MalformedNumber
-		}
-
-		if currentChar == "." && period == false {
-			lexBuf.WriteString(currentChar)
-			scanner.advance()
-			scanner.commit()
-			return Token{}, MalformedNumber
+		if !scanner.isFirstChar() && currentChar == "." {
+			if isDigit(scanner.peek()) {
+				lexBuf.WriteString(currentChar)
+				scanner.advance()
+				continue
+			} else {
+				break
+			}
 		}
 
 		if isDigit(currentChar) {
 			lexBuf.WriteString(currentChar)
 			scanner.advance()
-		} else if currentChar == "." {
-			lexBuf.WriteString(currentChar)
-			period = false
-			mustBePeriod = false
-			foundPeriod = true
-			scanner.advance()
-		} else if foundPeriod {
+			continue
+		} else {
 			scanner.commit()
 			return Token{REAL, NULL, lexBuf.String()}, nil
-		} else {
-			break
 		}
 	}
 
@@ -261,16 +249,14 @@ func (scanner *Scanner) NextToken() (Token, error) {
 
 	// Integers
 	for {
+		// fmt.Println("Integers")
 		currentChar, err := scanner.currentChar()
 		if err != nil {
 			return Token{}, err
 		}
 
-		if scanner.isFirstChar() && currentChar == "0" {
-			lexBuf.WriteString(currentChar)
-			scanner.advance()
-			scanner.commit()
-			return Token{}, MalformedNumber
+		if scanner.currentLength() > idLength {
+			return Token{}, LengthError
 		}
 
 		if scanner.isFirstChar() && !isDigit(currentChar) {
@@ -291,6 +277,7 @@ func (scanner *Scanner) NextToken() (Token, error) {
 
 	// assignop
 	for {
+		// fmt.Println("assignop")
 		currentChar, err := scanner.currentChar()
 		if err != nil {
 			return Token{}, err
@@ -316,63 +303,53 @@ func (scanner *Scanner) NextToken() (Token, error) {
 	lexBuf.Reset()
 
 	// relop
-	var lt bool = false
-	var gt bool = false
 	for {
+		// fmt.Println("relop")
 		currentChar, err := scanner.currentChar()
 		if err != nil {
 			return Token{}, err
 		}
 
-		if currentChar == "<" && scanner.isFirstChar() {
-			lexBuf.WriteString(currentChar)
-			scanner.advance()
-			lt = true
-			continue
-		}
-
-		if currentChar == ">" && scanner.isFirstChar() {
-			lexBuf.WriteString(currentChar)
-			scanner.advance()
-
-			if lt == true {
+		if scanner.isFirstChar() && currentChar == "<" {
+			switch scanner.peek() {
+			case ">":
+				lexBuf.WriteString(currentChar + ">")
+				scanner.advance()
 				scanner.commit()
 				return Token{RELOP, NOT_EQ, lexBuf.String()}, nil
-			} else {
-				gt = true
-			}
-
-			continue
-		}
-
-		if currentChar == "=" {
-			lexBuf.WriteString(currentChar)
-			scanner.advance()
-
-			if lt == true {
+			case "=":
+				lexBuf.WriteString(currentChar + "=")
+				scanner.advance()
 				scanner.commit()
 				return Token{RELOP, LESS_EQ, lexBuf.String()}, nil
+			default:
+				lexBuf.WriteString(currentChar)
+				scanner.advance()
+				scanner.commit()
+				return Token{RELOP, LESS, lexBuf.String()}, nil
 			}
+		}
 
-			if gt == true {
+		if scanner.isFirstChar() && currentChar == ">" {
+			if scanner.peek() == "=" {
+				scanner.advance()
 				scanner.commit()
 				return Token{RELOP, GREATER_EQ, lexBuf.String()}, nil
+			} else {
+				scanner.advance()
+				scanner.commit()
+				return Token{RELOP, GREATER, lexBuf.String()}, nil
 			}
+		}
 
+		if scanner.isFirstChar() && currentChar == "=" {
+			lexBuf.WriteString(currentChar)
+			scanner.advance()
 			scanner.commit()
 			return Token{RELOP, EQ, lexBuf.String()}, nil
 		}
 
-		if !scanner.isFirstChar() {
-			lexBuf.WriteString(currentChar)
-			if currentChar == "<" {
-				return Token{RELOP, LESS, lexBuf.String()}, nil
-			} else {
-				return Token{RELOP, GREATER, lexBuf.String()}, nil
-			}
-		} else {
-			break
-		}
+		break
 	}
 
 	scanner.reset()
@@ -380,6 +357,7 @@ func (scanner *Scanner) NextToken() (Token, error) {
 
 	// addop
 	for {
+		// fmt.Println("addop")
 		currentChar, err := scanner.currentChar()
 		if err != nil {
 			return Token{}, err
@@ -399,7 +377,6 @@ func (scanner *Scanner) NextToken() (Token, error) {
 			return Token{ADDOP, SUB, lexBuf.String()}, nil
 		}
 
-		scanner.advance()
 		break
 	}
 
@@ -408,6 +385,7 @@ func (scanner *Scanner) NextToken() (Token, error) {
 
 	// mulop
 	for {
+		// fmt.Println("mulop")
 		currentChar, err := scanner.currentChar()
 		if err != nil {
 			return Token{}, err
@@ -427,7 +405,6 @@ func (scanner *Scanner) NextToken() (Token, error) {
 			return Token{MULOP, DIV, lexBuf.String()}, nil
 		}
 
-		scanner.advance()
 		break
 	}
 
@@ -436,6 +413,7 @@ func (scanner *Scanner) NextToken() (Token, error) {
 
 	// Other
 	for {
+		// fmt.Println("other")
 		currentChar, err := scanner.currentChar()
 		if err != nil {
 			return Token{}, err
@@ -559,6 +537,13 @@ func (scanner *Scanner) advance() {
 
 func (scanner *Scanner) retract() {
 	scanner.posF--
+}
+
+func (scanner *Scanner) peek() string {
+	scanner.advance()
+	str, _ := scanner.currentChar()
+	scanner.retract()
+	return str
 }
 
 func (scanner *Scanner) commit() {
