@@ -62,7 +62,6 @@ func (scanner *Scanner) NextToken() (Token, error) {
 
 	// Newlines and Tabs
 	for {
-		// fmt.Println("Newlines")
 		currentChar, err := scanner.currentChar()
 		if err != nil {
 			return Token{}, err
@@ -85,7 +84,6 @@ func (scanner *Scanner) NextToken() (Token, error) {
 
 	// IDs / Reserved Words
 	for {
-		// fmt.Println("IDs")
 		currentChar, err := scanner.currentChar()
 		if err != nil {
 			return Token{}, err
@@ -118,7 +116,6 @@ func (scanner *Scanner) NextToken() (Token, error) {
 
 	// Whitespace
 	for {
-		// fmt.Println("WS")
 		currentChar, err := scanner.currentChar()
 		if err != nil {
 			return Token{}, err
@@ -141,7 +138,6 @@ func (scanner *Scanner) NextToken() (Token, error) {
 
 	// Long Real
 	for {
-		// fmt.Println("Long Real")
 		currentChar, err := scanner.currentChar()
 		if err != nil {
 			return Token{}, err
@@ -190,8 +186,12 @@ func (scanner *Scanner) NextToken() (Token, error) {
 			scanner.advance()
 			continue
 		} else {
-			scanner.commit()
-			return Token{LONG_REAL, NULL, lexBuf.String()}, nil
+			if strings.Contains(lexBuf.String(), ".") && strings.Contains(lexBuf.String(), "E") {
+				scanner.commit()
+				return Token{LONG_REAL, NULL, lexBuf.String()}, nil
+			} else {
+				break
+			}
 		}
 	}
 
@@ -200,7 +200,6 @@ func (scanner *Scanner) NextToken() (Token, error) {
 
 	// Real
 	for {
-		// fmt.Println("Real")
 		currentChar, err := scanner.currentChar()
 		if err != nil {
 			return Token{}, err
@@ -239,8 +238,12 @@ func (scanner *Scanner) NextToken() (Token, error) {
 			scanner.advance()
 			continue
 		} else {
-			scanner.commit()
-			return Token{REAL, NULL, lexBuf.String()}, nil
+			if strings.Contains(lexBuf.String(), ".") {
+				scanner.commit()
+				return Token{REAL, NULL, lexBuf.String()}, nil
+			} else {
+				break
+			}
 		}
 	}
 
@@ -249,7 +252,6 @@ func (scanner *Scanner) NextToken() (Token, error) {
 
 	// Integers
 	for {
-		// fmt.Println("Integers")
 		currentChar, err := scanner.currentChar()
 		if err != nil {
 			return Token{}, err
@@ -277,7 +279,6 @@ func (scanner *Scanner) NextToken() (Token, error) {
 
 	// assignop
 	for {
-		// fmt.Println("assignop")
 		currentChar, err := scanner.currentChar()
 		if err != nil {
 			return Token{}, err
@@ -304,7 +305,6 @@ func (scanner *Scanner) NextToken() (Token, error) {
 
 	// relop
 	for {
-		// fmt.Println("relop")
 		currentChar, err := scanner.currentChar()
 		if err != nil {
 			return Token{}, err
@@ -357,7 +357,6 @@ func (scanner *Scanner) NextToken() (Token, error) {
 
 	// addop
 	for {
-		// fmt.Println("addop")
 		currentChar, err := scanner.currentChar()
 		if err != nil {
 			return Token{}, err
@@ -385,7 +384,6 @@ func (scanner *Scanner) NextToken() (Token, error) {
 
 	// mulop
 	for {
-		// fmt.Println("mulop")
 		currentChar, err := scanner.currentChar()
 		if err != nil {
 			return Token{}, err
@@ -413,7 +411,6 @@ func (scanner *Scanner) NextToken() (Token, error) {
 
 	// Other
 	for {
-		// fmt.Println("other")
 		currentChar, err := scanner.currentChar()
 		if err != nil {
 			return Token{}, err
