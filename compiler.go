@@ -35,7 +35,7 @@ func main() {
 			}
 
 			token, err := scanner.NextToken()
-			fmt.Println(token)
+			// fmt.Println(token)
 			// if token.Type() == scan.ID && token.Value()
 
 			if err == io.EOF {
