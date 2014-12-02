@@ -10,6 +10,7 @@ import (
 )
 
 import scan "compiler/scanner"
+import parse "compiler/parser"
 import "compiler/util"
 
 func main() {
