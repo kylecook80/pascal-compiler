@@ -61,8 +61,8 @@ end
 
 str << "}"
 str << ""
-str << "func (tok Token) String() string {"
 
+str << "func (tok Token) String() string {"
 str << "if tok.id < 0 || int(tok.id) >= len(TokenStrings) {"
 str << "return \"Unknown\""
 str << "}"
@@ -72,6 +72,31 @@ str << "return \"Unknown\""
 str << "}"
 str << ""
 str << "return \"\\\"\" + tok.lexeme + \"\\\"\" + \" \" + TokenStrings[tok.id] + \" \" + AttrStrings[tok.attr]"
+str << "}"
+str << ""
+
+str << "func (tok Token) Type() TokenType {"
+str << "return tok.id"
+str << "}"
+str << ""
+
+str << "func (tok Token) Attr() Attribute {"
+str << "return tok.attr"
+str << "}"
+str << ""
+
+str << "func (tok Token) Value() string {"
+str << "return tok.lexeme"
+str << "}"
+str << ""
+
+str << "func (tokType TokenType) String() string {"
+str << "return TokenStrings[tokType]"
+str << "}"
+str << ""
+
+str << "func (attr Attribute) String() string {"
+str << "return AttrStrings[attr]"
 str << "}"
 str << ""
 

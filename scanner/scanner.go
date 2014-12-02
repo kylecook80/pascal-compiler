@@ -16,7 +16,6 @@ const (
 	idLength   = 10
 )
 
-// var MalformedNumber = errors.New("Number is malformed")
 var LengthError = errors.New("Identifier or Number is too long")
 
 type ScannerError struct {
@@ -103,7 +102,8 @@ func (scanner *Scanner) NextToken() (Token, error) {
 		} else {
 			scanner.commit()
 			if scanner.isReservedWord(lexBuf.String()) {
-				return Token{RES, NULL, lexBuf.String()}, nil
+				resToken := scanner.checkReservedWord(lexBuf.String())
+				return Token{RES, resToken, lexBuf.String()}, nil
 			} else {
 				str := lexBuf.String()
 				return Token{ID, NULL, str}, nil
@@ -574,4 +574,12 @@ func (scanner *Scanner) isReservedWord(word string) bool {
 	}
 
 	return false
+}
+
+func (scanner *Scanner) checkReservedWord(word string) Attribute {
+	if word == "program" {
+		return PROG
+	}
+
+	return NULL
 }

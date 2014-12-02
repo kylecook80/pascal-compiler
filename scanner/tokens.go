@@ -13,7 +13,6 @@ type Attribute int
 const (
 	_ TokenType = iota
 	RES
-	PROG
 	VAR
 	OF
 	INT_DEC
@@ -68,11 +67,11 @@ const (
 	SUB
 	MUL
 	DIV
+	PROG
 )
 
 var TokenStrings []string = []string{
 	RES:           "RES",
-	PROG:          "PROG",
 	VAR:           "VAR",
 	OF:            "OF",
 	INT_DEC:       "INT_DEC",
@@ -125,14 +124,7 @@ var AttrStrings []string = []string{
 	SUB:             "SUB",
 	MUL:             "MUL",
 	DIV:             "DIV",
-}
-
-func (tok Token) Type() TokenType {
-	return tok.id
-}
-
-func (tok Token) Value() string {
-	return tok.lexeme
+	PROG:            "PROG",
 }
 
 func (tok Token) String() string {
@@ -145,4 +137,24 @@ func (tok Token) String() string {
 	}
 
 	return "\"" + tok.lexeme + "\"" + " " + TokenStrings[tok.id] + " " + AttrStrings[tok.attr]
+}
+
+func (tok Token) Type() TokenType {
+	return tok.id
+}
+
+func (tok Token) Attr() Attribute {
+	return tok.attr
+}
+
+func (tok Token) Value() string {
+	return tok.lexeme
+}
+
+func (tokType TokenType) String() string {
+	return TokenStrings[tokType]
+}
+
+func (attr Attribute) String() string {
+	return AttrStrings[attr]
 }
