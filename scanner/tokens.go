@@ -13,40 +13,14 @@ type Attribute int
 const (
 	_ TokenType = iota
 	RES
-	VAR
-	OF
-	INT_DEC
-	REAL_DEC
-	FUNC
-	PROC
-	BEGIN
-	END_DEC
-	IF
-	THEN
-	ELSE
-	WHILE
-	DO
-	AND
-	OR
-	NOT
-	MOD
 	ID
 	WS
-	LONG_REAL
-	REAL
-	INT
+	NUM
+	RANGE
 	ASSIGNOP
 	RELOP
 	ADDOP
 	MULOP
-	LEFT_PAREN
-	RIGHT_PAREN
-	LEFT_BRACKET
-	RIGHT_BRACKET
-	COMMA
-	SEMI
-	COLON
-	END
 	LEXERR
 )
 
@@ -68,45 +42,47 @@ const (
 	MUL
 	DIV
 	PROG
+	VAR
+	OF
+	INT_DEC
+	REAL_DEC
+	PROC
+	BEGIN
+	END_DEC
+	LONG_REAL
+	REAL
+	INT
+	IF
+	THEN
+	ELSE
+	WHILE
+	DO
+	AND
+	OR
+	NOT
+	MOD
+	ARRAY
+	LEFT_PAREN
+	RIGHT_PAREN
+	LEFT_BRACKET
+	RIGHT_BRACKET
+	COMMA
+	SEMI
+	COLON
+	END
 )
 
 var TokenStrings []string = []string{
-	RES:           "RES",
-	VAR:           "VAR",
-	OF:            "OF",
-	INT_DEC:       "INT_DEC",
-	REAL_DEC:      "REAL_DEC",
-	FUNC:          "FUNC",
-	PROC:          "PROC",
-	BEGIN:         "BEGIN",
-	END_DEC:       "END_DEC",
-	IF:            "IF",
-	THEN:          "THEN",
-	ELSE:          "ELSE",
-	WHILE:         "WHILE",
-	DO:            "DO",
-	AND:           "AND",
-	OR:            "OR",
-	NOT:           "NOT",
-	MOD:           "MOD",
-	ID:            "ID",
-	WS:            "WS",
-	LONG_REAL:     "LONG_REAL",
-	REAL:          "REAL",
-	INT:           "INT",
-	ASSIGNOP:      "ASSIGNOP",
-	RELOP:         "RELOP",
-	ADDOP:         "ADDOP",
-	MULOP:         "MULOP",
-	LEFT_PAREN:    "LEFT_PAREN",
-	RIGHT_PAREN:   "RIGHT_PAREN",
-	LEFT_BRACKET:  "LEFT_BRACKET",
-	RIGHT_BRACKET: "RIGHT_BRACKET",
-	COMMA:         "COMMA",
-	SEMI:          "SEMI",
-	COLON:         "COLON",
-	END:           "END",
-	LEXERR:        "LEXERR",
+	RES:      "RES",
+	ID:       "ID",
+	WS:       "WS",
+	NUM:      "NUM",
+	RANGE:    "RANGE",
+	ASSIGNOP: "ASSIGNOP",
+	RELOP:    "RELOP",
+	ADDOP:    "ADDOP",
+	MULOP:    "MULOP",
+	LEXERR:   "LEXERR",
 }
 
 var AttrStrings []string = []string{
@@ -125,6 +101,34 @@ var AttrStrings []string = []string{
 	MUL:             "MUL",
 	DIV:             "DIV",
 	PROG:            "PROG",
+	VAR:             "VAR",
+	OF:              "OF",
+	INT_DEC:         "INT_DEC",
+	REAL_DEC:        "REAL_DEC",
+	PROC:            "PROC",
+	BEGIN:           "BEGIN",
+	END_DEC:         "END_DEC",
+	LONG_REAL:       "LONG_REAL",
+	REAL:            "REAL",
+	INT:             "INT",
+	IF:              "IF",
+	THEN:            "THEN",
+	ELSE:            "ELSE",
+	WHILE:           "WHILE",
+	DO:              "DO",
+	AND:             "AND",
+	OR:              "OR",
+	NOT:             "NOT",
+	MOD:             "MOD",
+	ARRAY:           "ARRAY",
+	LEFT_PAREN:      "LEFT_PAREN",
+	RIGHT_PAREN:     "RIGHT_PAREN",
+	LEFT_BRACKET:    "LEFT_BRACKET",
+	RIGHT_BRACKET:   "RIGHT_BRACKET",
+	COMMA:           "COMMA",
+	SEMI:            "SEMI",
+	COLON:           "COLON",
+	END:             "END",
 }
 
 func (tok Token) String() string {

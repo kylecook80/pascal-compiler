@@ -188,7 +188,7 @@ func (scanner *Scanner) NextToken() (Token, error) {
 		} else {
 			if strings.Contains(lexBuf.String(), ".") && strings.Contains(lexBuf.String(), "E") {
 				scanner.commit()
-				return Token{LONG_REAL, NULL, lexBuf.String()}, nil
+				return Token{NUM, LONG_REAL, lexBuf.String()}, nil
 			} else {
 				break
 			}
@@ -240,7 +240,7 @@ func (scanner *Scanner) NextToken() (Token, error) {
 		} else {
 			if strings.Contains(lexBuf.String(), ".") {
 				scanner.commit()
-				return Token{REAL, NULL, lexBuf.String()}, nil
+				return Token{NUM, REAL, lexBuf.String()}, nil
 			} else {
 				break
 			}
@@ -270,7 +270,7 @@ func (scanner *Scanner) NextToken() (Token, error) {
 			scanner.advance()
 		} else {
 			scanner.commit()
-			return Token{INT, NULL, lexBuf.String()}, nil
+			return Token{NUM, INT, lexBuf.String()}, nil
 		}
 	}
 
@@ -421,35 +421,41 @@ func (scanner *Scanner) NextToken() (Token, error) {
 		if currentChar == "(" {
 			scanner.advance()
 			scanner.commit()
-			return Token{LEFT_PAREN, NULL, lexBuf.String()}, nil
+			return Token{RES, LEFT_PAREN, lexBuf.String()}, nil
 		} else if currentChar == ")" {
 			scanner.advance()
 			scanner.commit()
-			return Token{RIGHT_PAREN, NULL, lexBuf.String()}, nil
+			return Token{RES, RIGHT_PAREN, lexBuf.String()}, nil
 		} else if currentChar == "[" {
 			scanner.advance()
 			scanner.commit()
-			return Token{LEFT_BRACKET, NULL, lexBuf.String()}, nil
+			return Token{RES, LEFT_BRACKET, lexBuf.String()}, nil
 		} else if currentChar == "]" {
 			scanner.advance()
 			scanner.commit()
-			return Token{RIGHT_BRACKET, NULL, lexBuf.String()}, nil
+			return Token{RES, RIGHT_BRACKET, lexBuf.String()}, nil
 		} else if currentChar == "," {
 			scanner.advance()
 			scanner.commit()
-			return Token{COMMA, NULL, lexBuf.String()}, nil
+			return Token{RES, COMMA, lexBuf.String()}, nil
 		} else if currentChar == ";" {
 			scanner.advance()
 			scanner.commit()
-			return Token{SEMI, NULL, lexBuf.String()}, nil
+			return Token{RES, SEMI, lexBuf.String()}, nil
 		} else if currentChar == ":" {
 			scanner.advance()
 			scanner.commit()
-			return Token{COLON, NULL, lexBuf.String()}, nil
+			return Token{RES, COLON, lexBuf.String()}, nil
 		} else if currentChar == "." {
 			scanner.advance()
 			scanner.commit()
-			return Token{END, NULL, lexBuf.String()}, nil
+			if scanner.peek() == "." {
+				scanner.advance()
+				scanner.commit()
+				return Token{RANGE, NULL, lexBuf.String()}, nil
+			} else {
+				return Token{RES, END, lexBuf.String()}, nil
+			}
 		} else {
 			break
 		}
@@ -579,6 +585,46 @@ func (scanner *Scanner) isReservedWord(word string) bool {
 func (scanner *Scanner) checkReservedWord(word string) Attribute {
 	if word == "program" {
 		return PROG
+	}
+
+	if word == "var" {
+		return VAR
+	}
+
+	if word == "of" {
+		return OF
+	}
+
+	if word == "integer" {
+		return INT_DEC
+	}
+
+	if word == "real" {
+		return REAL_DEC
+	}
+
+	if word == "array" {
+		return ARRAY
+	}
+
+	if word == "procedure" {
+		return PROC
+	}
+
+	if word == "begin" {
+		return BEGIN
+	}
+
+	if word == "end" {
+		return END_DEC
+	}
+
+	if word == "if" {
+		return IF
+	}
+
+	if word == "then" {
+
 	}
 
 	return NULL
