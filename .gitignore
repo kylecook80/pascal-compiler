@@ -24,3 +24,5 @@ _testmain.go
 
 compiler
 *.txt
+
+.DS_Store

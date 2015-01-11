@@ -29,8 +29,13 @@ func (listing *ListingFile) AddLine(line string) error {
 
 // AddError adds a line to the listing file describing an error.
 // It adds "LEXERR" to the front of the error.
-func (listing *ListingFile) AddError(line string) error {
-	_, err := listing.WriteString("LEXERR: " + line + "\n")
+func (listing *ListingFile) AddLexError(line string) error {
+	_, err := listing.WriteString("Lexical Error: " + line + "\n")
+	return err
+}
+
+func (listing *ListingFile) AddSyntaxError(line string) error {
+	_, err := listing.WriteString("Syntax Error: " + line + "\n")
 	return err
 }
 

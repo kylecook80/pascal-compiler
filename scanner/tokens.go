@@ -1,18 +1,17 @@
 package scanner
 
+type TokenType uint64
+type AttributeType uint64
+
 type Token struct {
 	id     TokenType
-	attr   Attribute
+	attr   AttributeType
 	lexeme string
 }
 
-type TokenType int
-type Attribute int
-
 // Tokens
 const (
-	_ TokenType = iota
-	RES
+	RES TokenType = 1 << iota
 	ID
 	WS
 	NUM
@@ -22,12 +21,12 @@ const (
 	ADDOP
 	MULOP
 	LEXERR
+	EOF
 )
 
-// Attributes
+// Attribute Types
 const (
-	_ Attribute = iota
-	NULL
+	NULL AttributeType = 1 << iota
 	UNREC
 	EXTRA_LONG_INT
 	EXTRA_LONG_FRAC
@@ -70,9 +69,10 @@ const (
 	SEMI
 	COLON
 	END
+	CALL
 )
 
-var TokenStrings []string = []string{
+var TokenStrings map[TokenType]string = map[TokenType]string{
 	RES:      "RES",
 	ID:       "ID",
 	WS:       "WS",
@@ -83,9 +83,10 @@ var TokenStrings []string = []string{
 	ADDOP:    "ADDOP",
 	MULOP:    "MULOP",
 	LEXERR:   "LEXERR",
+	EOF:      "EOF",
 }
 
-var AttrStrings []string = []string{
+var AttrStrings map[AttributeType]string = map[AttributeType]string{
 	NULL:            "NULL",
 	UNREC:           "UNREC",
 	EXTRA_LONG_INT:  "EXTRA_LONG_INT",
@@ -129,16 +130,17 @@ var AttrStrings []string = []string{
 	SEMI:            "SEMI",
 	COLON:           "COLON",
 	END:             "END",
+	CALL:            "CALL",
 }
 
 func (tok Token) String() string {
-	if tok.id < 0 || int(tok.id) >= len(TokenStrings) {
-		return "Unknown"
-	}
+	// if tok.id < 0 || int(tok.id) >= len(TokenStrings) {
+	// 	return "Unknown"
+	// }
 
-	if tok.attr < 0 || int(tok.attr) >= len(AttrStrings) {
-		return "Unknown"
-	}
+	// if tok.attr < 0 || int(tok.attr) >= len(AttrStrings) {
+	// 	return "Unknown"
+	// }
 
 	return "\"" + tok.lexeme + "\"" + " " + TokenStrings[tok.id] + " " + AttrStrings[tok.attr]
 }
@@ -147,7 +149,7 @@ func (tok Token) Type() TokenType {
 	return tok.id
 }
 
-func (tok Token) Attr() Attribute {
+func (tok Token) Attr() AttributeType {
 	return tok.attr
 }
 
@@ -159,6 +161,6 @@ func (tokType TokenType) String() string {
 	return TokenStrings[tokType]
 }
 
-func (attr Attribute) String() string {
+func (attr AttributeType) String() string {
 	return AttrStrings[attr]
 }

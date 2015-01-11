@@ -63,6 +63,9 @@ func (scanner *Scanner) NextToken() (Token, error) {
 	for {
 		currentChar, err := scanner.currentChar()
 		if err != nil {
+			if err == io.EOF {
+				return Token{EOF, NULL, ""}, nil
+			}
 			return Token{}, err
 		}
 
@@ -582,7 +585,7 @@ func (scanner *Scanner) isReservedWord(word string) bool {
 	return false
 }
 
-func (scanner *Scanner) checkReservedWord(word string) Attribute {
+func (scanner *Scanner) checkReservedWord(word string) AttributeType {
 	if word == "program" {
 		return PROG
 	}
@@ -624,7 +627,39 @@ func (scanner *Scanner) checkReservedWord(word string) Attribute {
 	}
 
 	if word == "then" {
+		return THEN
+	}
 
+	if word == "else" {
+		return ELSE
+	}
+
+	if word == "while" {
+		return WHILE
+	}
+
+	if word == "do" {
+		return DO
+	}
+
+	if word == "and" {
+		return AND
+	}
+
+	if word == "or" {
+		return OR
+	}
+
+	if word == "not" {
+		return NOT
+	}
+
+	if word == "mod" {
+		return MOD
+	}
+
+	if word == "call" {
+		return CALL
 	}
 
 	return NULL
