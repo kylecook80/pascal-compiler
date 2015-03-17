@@ -138,18 +138,32 @@ func (parser *Parser) program() {
 	parser.nextTok()
 	parser.expect(PROG)
 	parser.expect(ID)
+
+	// AddGreenNode(id, PGNAME, nil)
+	// offset = 0
+	// GetPtr(id) -> identifier_list
+
 	parser.expect(LEFT_PAREN)
 	parser.identifier_list()
 	parser.expect(RIGHT_PAREN)
 	parser.expect(SEMI)
+
+	// identifier list -> program_prime
+
 	parser.program_prime()
+
+	// PopGreenStack()
 }
 
 func (parser *Parser) program_prime() {
 	if parser.accept(VAR) {
+		// program_prime -> declarations
 		parser.declarations()
+
+		// declarations -> program_double_prime
 		parser.program_double_prime()
 	} else if parser.accept(PROC) {
+		// program_prime -> subprogram_declarations
 		parser.subprogram_declarations()
 		parser.compound_statement()
 		parser.expect(END)
@@ -165,6 +179,7 @@ func (parser *Parser) program_prime() {
 
 func (parser *Parser) program_double_prime() {
 	if parser.accept(PROC) {
+		// program_double_prime > subprogram_declarations
 		parser.subprogram_declarations()
 		parser.compound_statement()
 		parser.expect(END)
@@ -180,14 +195,36 @@ func (parser *Parser) program_double_prime() {
 
 func (parser *Parser) identifier_list() {
 	parser.expect(ID)
+
+	// temp = AddBlueNode(id, PGPARM, identifier_list_param)
+	// if temp = nil {
+	// 	identifier_list -> identifier_list_prime
+	// } else {
+	// 	GetPtr(id) -> identifier_list_prime
+	// }
+	// GreenStack.top.numParams++
+
 	parser.identifier_list_prime()
+
+	//return identifier_list_prime
 }
 
 func (parser *Parser) identifier_list_prime() {
 	if parser.accept(COMMA) {
 		parser.expect(COMMA)
 		parser.expect(ID)
+
+		// temp = AddBlueNode
+		// if temp == null {
+		// 	identifier_list -> identifier_list_prime
+		// } else {
+		// 	ptr id => identifier_list_prime
+		// }
+		// greenstack.top.numParams++
+
 		parser.identifier_list_prime()
+
+		// return identifier_list_prime
 	} else if parser.accept(RIGHT_PAREN) {
 		// NOOP
 	} else {
@@ -202,8 +239,19 @@ func (parser *Parser) declarations() {
 	parser.expect(ID)
 	parser.expect(COLON)
 	parser.type_prod()
+
+	// temp = AddBlueNode(id, type, declarations, offset)
+	// if declarations.temp = nil {
+	//   declarations -> declarations_prime
+	// } else {
+	//   offset += type.size
+	//   GetPtr(id) -> declarations'
+	// }
+
 	parser.expect(SEMI)
 	parser.declarations_prime()
+
+	// return declarations_prime
 }
 
 func (parser *Parser) declarations_prime() {
@@ -212,8 +260,15 @@ func (parser *Parser) declarations_prime() {
 		parser.expect(ID)
 		parser.expect(COLON)
 		parser.type_prod()
+
+		// AddBlueNode(GetPtr(id), type, declarations_prime, offset)
+		// offset += type.size
+		// GetPtr(id) -> declarations_prime
+
 		parser.expect(SEMI)
 		parser.declarations_prime()
+
+		// return declarations_prime
 	} else if parser.accept(PROC | BEGIN) {
 		// NOOP
 	} else {
@@ -226,15 +281,31 @@ func (parser *Parser) declarations_prime() {
 func (parser *Parser) type_prod() {
 	if parser.accept(INT_DEC | REAL_DEC) {
 		parser.standard_type()
+		// return {standard_type.size, standard_type.type}
 	} else if parser.accept(ARRAY) {
 		parser.expect(ARRAY)
 		parser.expect(LEFT_BRACKET)
 		parser.expect(NUM)
+
+		// num = NUM
+
 		parser.expect(RANGE)
 		parser.expect(NUM)
+
+		// num_prime = NUM
+
 		parser.expect(RIGHT_BRACKET)
 		parser.expect(OF)
+
 		parser.standard_type()
+
+		// if reflect.TypeOf(num) == 'integer' && reflect.TypeOf(num_prime) == 'integer' && num_prime > num {
+		// 	myType = MakeArray(standard_type, num, num - num_prime + 1)
+		// 	size = (num_prime - num + 1) * sizeof(standard_type)
+		// } else {
+		// 	myType = ERR_STAR
+		// 	size = 0;
+		// }
 	} else {
 		// ERROR
 		parser.printError("integer", "real", "array")
@@ -245,8 +316,10 @@ func (parser *Parser) type_prod() {
 func (parser *Parser) standard_type() {
 	if parser.accept(INT_DEC) {
 		parser.expect(INT_DEC)
+		// return {INT, INTSIZE}
 	} else if parser.accept(REAL_DEC) {
 		parser.expect(REAL_DEC)
+		// return {REAL, REALSIZE}
 	} else {
 		// ERROR
 		parser.printError("integer", "real")
@@ -255,15 +328,23 @@ func (parser *Parser) standard_type() {
 }
 
 func (parser *Parser) subprogram_declarations() {
+	// subprogram_declarations -> subprogram_declaration
+
 	parser.subprogram_declaration()
 	parser.expect(SEMI)
+
+	// subprogram_declaration -> subprogrm_declarations_prime
+
 	parser.subprogram_declarations_prime()
+
+	// return subprogram_declarations_prime
 }
 
 func (parser *Parser) subprogram_declarations_prime() {
 	if parser.accept(PROC) {
 		parser.expect(PROC)
 		parser.expect(SEMI)
+		// subprogram_declarations_prime -> subprogram_declaration
 		parser.subprogram_declarations_prime()
 	} else if parser.accept(BEGIN) {
 		// NOOP
@@ -275,14 +356,20 @@ func (parser *Parser) subprogram_declarations_prime() {
 }
 
 func (parser *Parser) subprogram_declaration() {
+	// subprogram_declaration -> subprogram_head
 	parser.subprogram_head()
+	// subprogram_head -> subprogram_declaration_prime
 	parser.subprogram_declaration_prime()
+	// return subprogram_declaration_prime
 }
 
 func (parser *Parser) subprogram_declaration_prime() {
 	if parser.accept(VAR) {
+		// subprogram_declaration_prime -> declarations
 		parser.declarations()
+		// declarations -> subprogram_declarations_double_prime
 		parser.subprogram_declaration_double_prime()
+		// return subprogram_declaration_double_prime
 	} else if parser.accept(BEGIN) {
 		parser.compound_statement()
 	} else if parser.accept(PROC) {
