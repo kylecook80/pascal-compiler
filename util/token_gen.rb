@@ -14,16 +14,16 @@ File.open("attributes", "r") do |f|
 end
 
 str = []
-str << "package scanner"
+str << "package util"
 str << ""
 str << "type Token struct {"
 str << "  id   TokenType"
-str << "  attr Attribute"
+str << "  attr AttributeType"
 str << "  lexeme string"
 str << "}"
 str << ""
 str << "type TokenType uint"
-str << "type Attribute uint"
+str << "type AttributeType uint"
 str << ""
 str << "// Tokens"
 str << "const ("
@@ -37,7 +37,7 @@ str << ")"
 str << ""
 str << "// Attributes"
 str << "const ("
-str << "_ Attribute = 1 << iota"
+str << "_ AttributeType = 1 << iota"
 
 attrs.each do |attribute|
   str << "#{attribute}"
@@ -45,7 +45,7 @@ end
 
 str << ")"
 str << ""
-str << "var TokenStrings []string = []string{"
+str << "var TokenStrings map[TokenType]string = map[TokenType]string{"
 
 tokens.each do |token|
   str << "#{token}: \"#{token}\","
@@ -53,7 +53,7 @@ end
 
 str << "}"
 str << ""
-str << "var AttrStrings []string = []string{"
+str << "var AttrStrings map[AttributeType]string = map[AttributeType]string{"
 
 attrs.each do |attribute|
   str << "#{attribute}: \"#{attribute}\","
@@ -62,14 +62,19 @@ end
 str << "}"
 str << ""
 
-str << "func (tok Token) String() string {"
-str << "if tok.id < 0 || int(tok.id) >= len(TokenStrings) {"
-str << "return \"Unknown\""
+str << "func NewToken(id TokenType, attr AttributeType, lexeme string) Token {"
+str << "return Token{id, attr, lexeme}"
 str << "}"
 str << ""
-str << "if tok.attr < 0 || int(tok.attr) >= len(AttrStrings) {"
-str << "return \"Unknown\""
-str << "}"
+
+str << "func (tok Token) String() string {"
+str << "// if tok.id < 0 || int(tok.id) >= len(TokenStrings) {"
+str << "// return \"Unknown\""
+str << "// }"
+str << ""
+str << "// if tok.attr < 0 || int(tok.attr) >= len(AttrStrings) {"
+str << "// return \"Unknown\""
+str << "// }"
 str << ""
 str << "return \"\\\"\" + tok.lexeme + \"\\\"\" + \" \" + TokenStrings[tok.id] + \" \" + AttrStrings[tok.attr]"
 str << "}"
@@ -80,7 +85,7 @@ str << "return tok.id"
 str << "}"
 str << ""
 
-str << "func (tok Token) Attr() Attribute {"
+str << "func (tok Token) Attr() AttributeType {"
 str << "return tok.attr"
 str << "}"
 str << ""
@@ -95,7 +100,7 @@ str << "return TokenStrings[tokType]"
 str << "}"
 str << ""
 
-str << "func (attr Attribute) String() string {"
+str << "func (attr AttributeType) String() string {"
 str << "return AttrStrings[attr]"
 str << "}"
 str << ""

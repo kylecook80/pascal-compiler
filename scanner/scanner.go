@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-import "compiler/util"
+import . "compiler/util"
 
 // Define constants and errors
 const (
@@ -28,27 +28,33 @@ type Scanner struct {
 	lineLength int
 	posF       int
 	posB       int
-	buf        util.Buffer
-	res        util.Buffer
+	buf        Buffer
+	res        Buffer
+	symTable   *SymbolTable
 }
 
 func NewScanner() *Scanner {
-	return new(Scanner)
+	scanner := Scanner{symTable: NewSymbolTable()}
+	return &scanner
 }
 
-func (scanner *Scanner) Buffer() *util.Buffer {
+func (scanner *Scanner) Buffer() *Buffer {
 	return &scanner.buf
+}
+
+func (scanner *Scanner) SymbolTable() *SymbolTable {
+	return scanner.symTable
 }
 
 // ReadFile takes a file and reads it into memory.
 // It is then returned as a string.
 func (scanner *Scanner) ReadSourceFile(file string) {
-	buf := util.ReadFile(file)
+	buf := ReadFile(file)
 	scanner.buf = *buf
 }
 
 func (scanner *Scanner) ReadReservedFile(file string) {
-	buf := util.ReadFile(file)
+	buf := ReadFile(file)
 	scanner.res = *buf
 }
 
@@ -57,14 +63,14 @@ func (scanner *Scanner) CurrentLineNumber() int {
 }
 
 func (scanner *Scanner) NextToken() (Token, error) {
-	lexBuf := new(util.Buffer)
+	lexBuf := new(Buffer)
 
 	// Newlines and Tabs
 	for {
 		currentChar, err := scanner.currentChar()
 		if err != nil {
 			if err == io.EOF {
-				return Token{EOF, NULL, ""}, nil
+				return NewToken(EOF, NULL, ""), nil
 			}
 			return Token{}, err
 		}
@@ -106,10 +112,18 @@ func (scanner *Scanner) NextToken() (Token, error) {
 			scanner.commit()
 			if scanner.isReservedWord(lexBuf.String()) {
 				resToken := scanner.checkReservedWord(lexBuf.String())
-				return Token{RES, resToken, lexBuf.String()}, nil
+				return NewToken(RES, resToken, lexBuf.String()), nil
 			} else {
 				str := lexBuf.String()
-				return Token{ID, NULL, str}, nil
+
+				sym := NewSymbol(str)
+				add := scanner.symTable.AddSymbol(sym)
+				scanner.symTable.Print()
+				if add == false {
+					fmt.Errorf("Error adding to symbol table")
+				}
+
+				return NewToken(ID, NULL, str), nil
 			}
 		}
 	}
@@ -132,7 +146,7 @@ func (scanner *Scanner) NextToken() (Token, error) {
 			scanner.advance()
 		} else {
 			scanner.commit()
-			return Token{WS, NULL, lexBuf.String()}, nil
+			return NewToken(WS, NULL, lexBuf.String()), nil
 		}
 	}
 
@@ -191,7 +205,7 @@ func (scanner *Scanner) NextToken() (Token, error) {
 		} else {
 			if strings.Contains(lexBuf.String(), ".") && strings.Contains(lexBuf.String(), "E") {
 				scanner.commit()
-				return Token{NUM, LONG_REAL, lexBuf.String()}, nil
+				return NewToken(NUM, LONG_REAL, lexBuf.String()), nil
 			} else {
 				break
 			}
@@ -243,7 +257,7 @@ func (scanner *Scanner) NextToken() (Token, error) {
 		} else {
 			if strings.Contains(lexBuf.String(), ".") {
 				scanner.commit()
-				return Token{NUM, REAL, lexBuf.String()}, nil
+				return NewToken(NUM, REAL, lexBuf.String()), nil
 			} else {
 				break
 			}
@@ -273,7 +287,7 @@ func (scanner *Scanner) NextToken() (Token, error) {
 			scanner.advance()
 		} else {
 			scanner.commit()
-			return Token{NUM, INT, lexBuf.String()}, nil
+			return NewToken(NUM, INT, lexBuf.String()), nil
 		}
 	}
 
@@ -297,7 +311,7 @@ func (scanner *Scanner) NextToken() (Token, error) {
 			lexBuf.WriteString(currentChar)
 			scanner.advance()
 			scanner.commit()
-			return Token{ASSIGNOP, NULL, lexBuf.String()}, nil
+			return NewToken(ASSIGNOP, NULL, lexBuf.String()), nil
 		}
 
 		break
@@ -319,17 +333,17 @@ func (scanner *Scanner) NextToken() (Token, error) {
 				lexBuf.WriteString(currentChar + ">")
 				scanner.advance()
 				scanner.commit()
-				return Token{RELOP, NOT_EQ, lexBuf.String()}, nil
+				return NewToken(RELOP, NOT_EQ, lexBuf.String()), nil
 			case "=":
 				lexBuf.WriteString(currentChar + "=")
 				scanner.advance()
 				scanner.commit()
-				return Token{RELOP, LESS_EQ, lexBuf.String()}, nil
+				return NewToken(RELOP, LESS_EQ, lexBuf.String()), nil
 			default:
 				lexBuf.WriteString(currentChar)
 				scanner.advance()
 				scanner.commit()
-				return Token{RELOP, LESS, lexBuf.String()}, nil
+				return NewToken(RELOP, LESS, lexBuf.String()), nil
 			}
 		}
 
@@ -337,11 +351,11 @@ func (scanner *Scanner) NextToken() (Token, error) {
 			if scanner.peek() == "=" {
 				scanner.advance()
 				scanner.commit()
-				return Token{RELOP, GREATER_EQ, lexBuf.String()}, nil
+				return NewToken(RELOP, GREATER_EQ, lexBuf.String()), nil
 			} else {
 				scanner.advance()
 				scanner.commit()
-				return Token{RELOP, GREATER, lexBuf.String()}, nil
+				return NewToken(RELOP, GREATER, lexBuf.String()), nil
 			}
 		}
 
@@ -349,7 +363,7 @@ func (scanner *Scanner) NextToken() (Token, error) {
 			lexBuf.WriteString(currentChar)
 			scanner.advance()
 			scanner.commit()
-			return Token{RELOP, EQ, lexBuf.String()}, nil
+			return NewToken(RELOP, EQ, lexBuf.String()), nil
 		}
 
 		break
@@ -369,14 +383,14 @@ func (scanner *Scanner) NextToken() (Token, error) {
 			lexBuf.WriteString(currentChar)
 			scanner.advance()
 			scanner.commit()
-			return Token{ADDOP, ADD, lexBuf.String()}, nil
+			return NewToken(ADDOP, ADD, lexBuf.String()), nil
 		}
 
 		if currentChar == "-" {
 			lexBuf.WriteString(currentChar)
 			scanner.advance()
 			scanner.commit()
-			return Token{ADDOP, SUB, lexBuf.String()}, nil
+			return NewToken(ADDOP, SUB, lexBuf.String()), nil
 		}
 
 		break
@@ -396,14 +410,14 @@ func (scanner *Scanner) NextToken() (Token, error) {
 			lexBuf.WriteString(currentChar)
 			scanner.advance()
 			scanner.commit()
-			return Token{MULOP, MUL, lexBuf.String()}, nil
+			return NewToken(MULOP, MUL, lexBuf.String()), nil
 		}
 
 		if currentChar == "/" {
 			lexBuf.WriteString(currentChar)
 			scanner.advance()
 			scanner.commit()
-			return Token{MULOP, DIV, lexBuf.String()}, nil
+			return NewToken(MULOP, DIV, lexBuf.String()), nil
 		}
 
 		break
@@ -424,40 +438,40 @@ func (scanner *Scanner) NextToken() (Token, error) {
 		if currentChar == "(" {
 			scanner.advance()
 			scanner.commit()
-			return Token{RES, LEFT_PAREN, lexBuf.String()}, nil
+			return NewToken(RES, LEFT_PAREN, lexBuf.String()), nil
 		} else if currentChar == ")" {
 			scanner.advance()
 			scanner.commit()
-			return Token{RES, RIGHT_PAREN, lexBuf.String()}, nil
+			return NewToken(RES, RIGHT_PAREN, lexBuf.String()), nil
 		} else if currentChar == "[" {
 			scanner.advance()
 			scanner.commit()
-			return Token{RES, LEFT_BRACKET, lexBuf.String()}, nil
+			return NewToken(RES, LEFT_BRACKET, lexBuf.String()), nil
 		} else if currentChar == "]" {
 			scanner.advance()
 			scanner.commit()
-			return Token{RES, RIGHT_BRACKET, lexBuf.String()}, nil
+			return NewToken(RES, RIGHT_BRACKET, lexBuf.String()), nil
 		} else if currentChar == "," {
 			scanner.advance()
 			scanner.commit()
-			return Token{RES, COMMA, lexBuf.String()}, nil
+			return NewToken(RES, COMMA, lexBuf.String()), nil
 		} else if currentChar == ";" {
 			scanner.advance()
 			scanner.commit()
-			return Token{RES, SEMI, lexBuf.String()}, nil
+			return NewToken(RES, SEMI, lexBuf.String()), nil
 		} else if currentChar == ":" {
 			scanner.advance()
 			scanner.commit()
-			return Token{RES, COLON, lexBuf.String()}, nil
+			return NewToken(RES, COLON, lexBuf.String()), nil
 		} else if currentChar == "." {
 			scanner.advance()
 			scanner.commit()
 			if scanner.peek() == "." {
 				scanner.advance()
 				scanner.commit()
-				return Token{RANGE, NULL, lexBuf.String()}, nil
+				return NewToken(RANGE, NULL, lexBuf.String()), nil
 			} else {
-				return Token{RES, END, lexBuf.String()}, nil
+				return NewToken(RES, END, lexBuf.String()), nil
 			}
 		} else {
 			break
@@ -472,7 +486,7 @@ func (scanner *Scanner) NextToken() (Token, error) {
 	scanner.advance()
 	scanner.commit()
 
-	return Token{LEXERR, UNREC, lexBuf.String()}, fmt.Errorf("Invalid character: %s", currentChar)
+	return NewToken(LEXERR, UNREC, lexBuf.String()), fmt.Errorf("Invalid character: %s", currentChar)
 }
 
 func isChar(char string) bool {

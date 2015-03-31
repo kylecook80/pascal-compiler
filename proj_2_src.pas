@@ -1,6 +1,6 @@
 program test (input, output);
 var a : integer;
+var b : real;
 begin
-  b := 3.14;
-  h := b
+  a := 3 + 5
 end.
