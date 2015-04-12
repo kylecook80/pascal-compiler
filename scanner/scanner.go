@@ -76,9 +76,12 @@ func (scanner *Scanner) NextToken() (Token, error) {
 		}
 
 		if currentChar == "\n" {
+			// scanner.advance()
+			// scanner.line++
+			// continue
 			scanner.advance()
 			scanner.line++
-			continue
+			return NewToken(WS, NEWLINE, "\n"), nil
 		}
 
 		if currentChar == "\t" {
@@ -112,16 +115,33 @@ func (scanner *Scanner) NextToken() (Token, error) {
 			scanner.commit()
 			if scanner.isReservedWord(lexBuf.String()) {
 				resToken := scanner.checkReservedWord(lexBuf.String())
+
+				if resToken == AND {
+					return NewToken(MULOP, AND, lexBuf.String()), nil
+				}
+
+				if resToken == OR {
+					return NewToken(ADDOP, OR, lexBuf.String()), nil
+				}
+
+				if resToken == MOD {
+					return NewToken(MULOP, MOD, lexBuf.String()), nil
+				}
+
+				if resToken == DIV {
+					return NewToken(MULOP, DIV, lexBuf.String()), nil
+				}
+
 				return NewToken(RES, resToken, lexBuf.String()), nil
 			} else {
 				str := lexBuf.String()
 
-				sym := NewSymbol(str)
-				add := scanner.symTable.AddSymbol(sym)
-				scanner.symTable.Print()
-				if add == false {
-					fmt.Errorf("Error adding to symbol table")
-				}
+				// sym := NewSymbol(str)
+				// add := scanner.symTable.AddSymbol(sym)
+
+				// if add == false {
+				// 	fmt.Errorf("Error adding to symbol table")
+				// }
 
 				return NewToken(ID, NULL, str), nil
 			}
@@ -332,15 +352,18 @@ func (scanner *Scanner) NextToken() (Token, error) {
 			case ">":
 				lexBuf.WriteString(currentChar + ">")
 				scanner.advance()
+				scanner.advance()
 				scanner.commit()
 				return NewToken(RELOP, NOT_EQ, lexBuf.String()), nil
 			case "=":
 				lexBuf.WriteString(currentChar + "=")
 				scanner.advance()
+				scanner.advance()
 				scanner.commit()
 				return NewToken(RELOP, LESS_EQ, lexBuf.String()), nil
 			default:
 				lexBuf.WriteString(currentChar)
+				scanner.advance()
 				scanner.advance()
 				scanner.commit()
 				return NewToken(RELOP, LESS, lexBuf.String()), nil
@@ -349,10 +372,13 @@ func (scanner *Scanner) NextToken() (Token, error) {
 
 		if scanner.isFirstChar() && currentChar == ">" {
 			if scanner.peek() == "=" {
+				lexBuf.WriteString(currentChar + "=")
+				scanner.advance()
 				scanner.advance()
 				scanner.commit()
 				return NewToken(RELOP, GREATER_EQ, lexBuf.String()), nil
 			} else {
+				lexBuf.WriteString(currentChar)
 				scanner.advance()
 				scanner.commit()
 				return NewToken(RELOP, GREATER, lexBuf.String()), nil
@@ -404,6 +430,10 @@ func (scanner *Scanner) NextToken() (Token, error) {
 		currentChar, err := scanner.currentChar()
 		if err != nil {
 			return Token{}, err
+		}
+
+		if scanner.isFirstChar() {
+
 		}
 
 		if currentChar == "*" {
@@ -464,13 +494,15 @@ func (scanner *Scanner) NextToken() (Token, error) {
 			scanner.commit()
 			return NewToken(RES, COLON, lexBuf.String()), nil
 		} else if currentChar == "." {
-			scanner.advance()
-			scanner.commit()
 			if scanner.peek() == "." {
+				lexBuf.WriteString(".")
+				scanner.advance()
 				scanner.advance()
 				scanner.commit()
 				return NewToken(RANGE, NULL, lexBuf.String()), nil
 			} else {
+				scanner.advance()
+				scanner.commit()
 				return NewToken(RES, END, lexBuf.String()), nil
 			}
 		} else {
@@ -524,6 +556,14 @@ func isWhitespace(char string) bool {
 	}
 
 	if char == " " {
+		return true
+	} else {
+		return false
+	}
+}
+
+func isNewline(char string) bool {
+	if char == "\n" {
 		return true
 	} else {
 		return false
@@ -670,6 +710,10 @@ func (scanner *Scanner) checkReservedWord(word string) AttributeType {
 
 	if word == "mod" {
 		return MOD
+	}
+
+	if word == "div" {
+		return DIV
 	}
 
 	if word == "call" {

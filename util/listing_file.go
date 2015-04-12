@@ -4,7 +4,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"time"
+	_ "time"
 )
 
 // listingFile is a structure for the creation and saving of
@@ -39,6 +39,11 @@ func (listing *ListingFile) AddSyntaxError(line string) error {
 	return err
 }
 
+func (listing *ListingFile) AddTypeError(line string) error {
+	_, err := listing.WriteString("Type Error: " + line + "\n")
+	return err
+}
+
 func (listing *ListingFile) LineCount() int {
 	return listing.counter
 }
@@ -47,7 +52,7 @@ func (listing *ListingFile) LineCount() int {
 // to the file system. It saves to the same directory as
 // the lexer is called from.
 func (listing *ListingFile) Save() string {
-	file := GenerateTimeString(time.Now()) + "_listing_file.txt"
+	file := "listing_file.txt"
 	newFile, err := os.Create(file)
 	if err != nil {
 		return ""

@@ -43,6 +43,8 @@ const (
 	MUL
 	DIV
 	PROG
+	PGNAME
+	PGPARM
 	VAR
 	OF
 	INT_DEC
@@ -81,6 +83,7 @@ const (
 	CALL
 	ERR
 	ERR_STAR
+	NEWLINE
 )
 
 var TokenStrings map[TokenType]string = map[TokenType]string{
@@ -113,6 +116,8 @@ var AttrStrings map[AttributeType]string = map[AttributeType]string{
 	MUL:             "MUL",
 	DIV:             "DIV",
 	PROG:            "PROG",
+	PGNAME:          "PGNAME",
+	PGPARM:          "PGPARM",
 	VAR:             "VAR",
 	OF:              "OF",
 	INT_DEC:         "INT_DEC",
@@ -151,6 +156,7 @@ var AttrStrings map[AttributeType]string = map[AttributeType]string{
 	CALL:            "CALL",
 	ERR:             "ERR",
 	ERR_STAR:        "ERR_STAR",
+	NEWLINE:         "NEWLINE",
 }
 
 func NewToken(id TokenType, attr AttributeType, lexeme string) Token {
