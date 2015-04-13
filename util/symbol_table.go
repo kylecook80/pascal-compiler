@@ -114,4 +114,5 @@ func (sym *Symbol) SetSize(newSize int) {
 
 func (sym *Symbol) String() string {
 	return fmt.Sprintln(sym.name, sym.typeName, sym.value)
+	// return sym.name
 }

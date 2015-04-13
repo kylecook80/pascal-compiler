@@ -38,7 +38,9 @@ func (scope *ScopeTree) GetTop() *GreenNode {
 }
 
 func (scope *ScopeTree) Pop() {
-	scope.stack.Pop()
+	greenNode := scope.stack.Pop()
+	parent := greenNode.parent
+	parent.RemoveChild(greenNode)
 }
 
 func (scope *ScopeTree) CreateRoot(name string, sym *Symbol) {
@@ -51,12 +53,27 @@ func (scope *ScopeTree) AddGreenNode(name string, sym *Symbol) {
 	newGreenNode := NewGreenNode(name, sym)
 	currentNode := scope.stack.Peek()
 	scope.stack.Push(newGreenNode)
-	currentNode.addChild(newGreenNode)
+	currentNode.AddChild(newGreenNode)
 	newGreenNode.parent = currentNode
 }
 
-func (node *GreenNode) addChild(newNode *GreenNode) {
+func (node *GreenNode) AddChild(newNode *GreenNode) {
 	node.children = append(node.children, newNode)
+}
+
+func (node *GreenNode) RemoveChild(removeNode *GreenNode) {
+	var match int = -1
+	if node != nil {
+		for idx, childNode := range node.children {
+			if childNode == removeNode {
+				match = idx
+			}
+		}
+
+		if match != -1 {
+			node.children = append(node.children[:match], node.children[match+1:]...)
+		}
+	}
 }
 
 func (node *GreenNode) AddBlueNode(name string, sym *Symbol) error {
@@ -98,4 +115,27 @@ func (node *GreenNode) FindBlueNode(name string) (*BlueNode, error) {
 
 func (node *BlueNode) GetSymbol() *Symbol {
 	return node.sym
+}
+
+func (node *GreenNode) Print() {
+	fmt.Println(node.name)
+	for _, blueNode := range node.vars {
+		if blueNode != nil {
+			fmt.Print("\t")
+			fmt.Print(blueNode)
+			fmt.Print("\n")
+		}
+	}
+
+	for _, greenNode := range node.children {
+		if greenNode != nil {
+			greenNode.Print()
+		}
+	}
+	fmt.Println()
+}
+
+func (scope *ScopeTree) GetRoot() *GreenNode {
+	first := scope.stack.First()
+	return first
 }

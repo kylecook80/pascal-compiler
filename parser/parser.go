@@ -37,7 +37,6 @@ func (parser *Parser) Begin(file string) {
 
 	parser.program()
 
-	// parser.scanner.SymbolTable().Print()
 	// ioutil.WriteFile(GenerateTimeString(time.Now())+"_token_file.txt", parser.tokenFile, 0644)
 	ioutil.WriteFile("token_file.txt", parser.tokenFile, 0644)
 	parser.scanner.SymbolTable().Write()
@@ -160,16 +159,10 @@ func (parser *Parser) program() {
 	parser.scanner.SymbolTable().AddSymbol(newSymbol)
 	parser.scope.CreateRoot(programName.Value(), newSymbol)
 
-	// AddGreenNode(id, PGNAME, nil)
-	// offset = 0
-	// GetPtr(id) -> identifier_list
-
 	parser.expect(LEFT_PAREN)
 	parser.identifier_list()
 	parser.expect(RIGHT_PAREN)
 	parser.expect(SEMI)
-
-	// identifier list -> program_prime
 
 	parser.program_prime()
 
@@ -178,13 +171,9 @@ func (parser *Parser) program() {
 
 func (parser *Parser) program_prime() {
 	if parser.accept(VAR) {
-		// program_prime -> declarations
 		parser.declarations()
-
-		// declarations -> program_double_prime
 		parser.program_double_prime()
 	} else if parser.accept(PROC) {
-		// program_prime -> subprogram_declarations
 		parser.subprogram_declarations()
 		parser.compound_statement()
 		parser.expect(END)
@@ -200,7 +189,6 @@ func (parser *Parser) program_prime() {
 
 func (parser *Parser) program_double_prime() {
 	if parser.accept(PROC) {
-		// program_double_prime > subprogram_declarations
 		parser.subprogram_declarations()
 		parser.compound_statement()
 		parser.expect(END)
@@ -216,21 +204,12 @@ func (parser *Parser) program_double_prime() {
 
 func (parser *Parser) identifier_list() {
 	progParm := parser.expect(ID)
+
 	symbol := NewSymbol(progParm.Value(), PGPARM)
 	parser.scanner.SymbolTable().AddSymbol(symbol)
 	parser.scope.GetTop().AddBlueNode(progParm.Value(), symbol)
 
-	// temp = AddBlueNode(id, PGPARM, identifier_list_param)
-	// if temp = nil {
-	// 	identifier_list -> identifier_list_prime
-	// } else {
-	// 	GetPtr(id) -> identifier_list_prime
-	// }
-	// GreenStack.top.numParams++
-
 	parser.identifier_list_prime()
-
-	//return identifier_list_prime
 }
 
 func (parser *Parser) identifier_list_prime() {
@@ -242,20 +221,9 @@ func (parser *Parser) identifier_list_prime() {
 		parser.scanner.SymbolTable().AddSymbol(symbol)
 		parser.scope.GetTop().AddBlueNode(progParm.Value(), symbol)
 
-		// temp = AddBlueNode
-		// if temp == null {
-		// 	identifier_list -> identifier_list_prime
-		// } else {
-		// 	ptr id => identifier_list_prime
-		// }
-		// greenstack.top.numParams++
-
 		parser.identifier_list_prime()
-
-		// return identifier_list_prime
 	} else if parser.accept(RIGHT_PAREN) {
 		// NOOP
-		// return identifier_list_prime
 	} else {
 		// ERROR
 		parser.printError(",", ")")
@@ -273,18 +241,8 @@ func (parser *Parser) declarations() {
 	parser.scanner.SymbolTable().AddSymbol(symbol)
 	parser.scope.GetTop().AddBlueNode(id.Value(), symbol)
 
-	// temp = AddBlueNode(id, type, declarations, offset)
-	// if declarations.temp = nil {
-	//   declarations -> declarations_prime
-	// } else {
-	//   offset += type.size
-	//   GetPtr(id) -> declarations'
-	// }
-
 	parser.expect(SEMI)
 	parser.declarations_prime()
-
-	// return declarations_prime
 }
 
 func (parser *Parser) declarations_prime() {
@@ -298,19 +256,10 @@ func (parser *Parser) declarations_prime() {
 		parser.scanner.SymbolTable().AddSymbol(symbol)
 		parser.scope.GetTop().AddBlueNode(id.Value(), symbol)
 
-		// parser.scanner.SymbolTable().AssignType(id.Value(), typeName)
-
-		// AddBlueNode(GetPtr(id), type, declarations_prime, offset)
-		// offset += type.size
-		// GetPtr(id) -> declarations_prime
-
 		parser.expect(SEMI)
 		parser.declarations_prime()
-
-		// return declarations_prime
 	} else if parser.accept(PROC | BEGIN) {
 		// NOOP
-		// return declarations_prime
 	} else {
 		// ERROR
 		parser.printError("var", "procedure", "begin")
@@ -354,14 +303,6 @@ func (parser *Parser) type_prod(id string) AttributeType {
 		} else {
 			return ERR
 		}
-
-		// if reflect.TypeOf(num) == 'integer' && reflect.TypeOf(num_prime) == 'integer' && num_prime > num {
-		// 	myType = MakeArray(standard_type, num, num - num_prime + 1)
-		// 	size = (num_prime - num + 1) * sizeof(standard_type)
-		// } else {
-		// 	myType = ERR_STAR
-		// 	size = 0;
-		// }
 	} else {
 		// ERROR
 		parser.printError("integer", "real", "array")
@@ -386,16 +327,9 @@ func (parser *Parser) standard_type(id string) AttributeType {
 }
 
 func (parser *Parser) subprogram_declarations() {
-	// subprogram_declarations -> subprogram_declaration
-
 	parser.subprogram_declaration()
 	parser.expect(SEMI)
-
-	// subprogram_declaration -> subprogram_declarations_prime
-
 	parser.subprogram_declarations_prime()
-
-	// return subprogram_declarations_prime
 }
 
 func (parser *Parser) subprogram_declarations_prime() {
@@ -403,7 +337,6 @@ func (parser *Parser) subprogram_declarations_prime() {
 		parser.subprogram_declaration()
 		parser.expect(SEMI)
 		parser.subprogram_declarations_prime()
-		// subprogram_declarations_prime -> subprogram_declaration
 	} else if parser.accept(BEGIN) {
 		// NOOP
 	} else {
@@ -414,21 +347,15 @@ func (parser *Parser) subprogram_declarations_prime() {
 }
 
 func (parser *Parser) subprogram_declaration() {
-	// subprogram_declaration -> subprogram_head
 	parser.subprogram_head()
-	// subprogram_head -> subprogram_declaration_prime
 	parser.subprogram_declaration_prime()
 	parser.scope.Pop()
-	// return subprogram_declaration_prime
 }
 
 func (parser *Parser) subprogram_declaration_prime() {
 	if parser.accept(VAR) {
-		// subprogram_declaration_prime -> declarations
 		parser.declarations()
-		// declarations -> subprogram_declarations_double_prime
 		parser.subprogram_declaration_double_prime()
-		// return subprogram_declaration_double_prime
 	} else if parser.accept(BEGIN) {
 		parser.compound_statement()
 	} else if parser.accept(PROC) {
@@ -443,12 +370,9 @@ func (parser *Parser) subprogram_declaration_prime() {
 func (parser *Parser) subprogram_declaration_double_prime() {
 	if parser.accept(BEGIN) {
 		parser.compound_statement()
-		// return subprogram_decalration_double_prime
 	} else if parser.accept(PROC) {
-		// subprogram_declaration_double_prime -> subprogram_declarations
 		parser.subprogram_declarations()
 		parser.compound_statement()
-		// return subprogram_declarations
 	}
 }
 
@@ -460,27 +384,13 @@ func (parser *Parser) subprogram_head() {
 	parser.scanner.SymbolTable().AddSymbol(symbol)
 	parser.scope.AddGreenNode(procName.Value(), symbol)
 
-	// if AddGreenNode(id, PROCNAME, subprogram_head) != NULL {
-	// 		PushGreenStack(GetPtr(id))
-	//		GetPtr(id) -> subprogram_head_prime
-	// }
-
 	parser.subprogram_head_prime()
-
-	// if subprogram_head == 0 {
-	// 	PopGreenStack(GetPtr(id))
-	// 	return subprogram_head_prime
-	// } else {
-	// 	return subprogram_head
-	// }
 }
 
 func (parser *Parser) subprogram_head_prime() {
 	if parser.accept(LEFT_PAREN) {
-		// subprogram_head_prime -> arguments
 		parser.arguments()
 		parser.expect(SEMI)
-		// return arguments
 	} else if parser.accept(SEMI) {
 		parser.expect(SEMI)
 	} else {
@@ -491,12 +401,9 @@ func (parser *Parser) subprogram_head_prime() {
 }
 
 func (parser *Parser) arguments() {
-	// GreenStack.top.numParams = 0
-	// arguments -> parameter_list
 	parser.expect(LEFT_PAREN)
 	parser.parameter_list()
 	parser.expect(RIGHT_PAREN)
-	// return parameter_list
 }
 
 func (parser *Parser) parameter_list() {
@@ -518,32 +425,7 @@ func (parser *Parser) parameter_list() {
 	parser.scanner.SymbolTable().AddSymbol(symbol)
 	parser.scope.GetTop().AddBlueNode(id.Value(), symbol)
 
-	// if parameter_list != null {
-	// 	if type_prod.type == INT {
-	// 		temp = AddBlueNode(id, PPINT, parameter_list)
-	// 	} else if type_prod.type == REAL {
-	// 		temp = AddBlueNode(id, PPREAL, parameter_list)
-	// 	} else if type_prod.type == AINT {
-	// 		temp = AddBlueNode(id, PPAINT, parameter_list)
-	// 	} else if type_prod.type == AREAL {
-	// 		temp = AddBlueNode(id, PPAREAL, parameter_list)
-	// 	} else {
-	// 		temp = AddBlueNode(id, ERR, parameter_list)
-	// 	}
-
-	// 	if temp == NULL {
-	// 		fmt.Print("Parameter Error")
-	// 	} else {
-	// 		GreenStack.top.numParams++
-	// 		temp -> parameter_list_prime
-	// 	}
-	// } else {
-	// 	GetPtr(id) -> parameter_list_prime
-	// }
-
 	parser.parameter_list_prime()
-
-	// return parameter_list_prime
 }
 
 func (parser *Parser) parameter_list_prime() {
@@ -567,34 +449,9 @@ func (parser *Parser) parameter_list_prime() {
 		parser.scanner.SymbolTable().AddSymbol(symbol)
 		parser.scope.GetTop().AddBlueNode(id.Value(), symbol)
 
-		// if parameter_list != null {
-		// 	if type_prod.type == INT {
-		// 		temp = AddBlueNode(id, PPINT, parameter_list_prime)
-		// 	} else if type_prod.type == REAL {
-		// 		temp = AddBlueNode(id, PPREAL, parameter_list_prime)
-		// 	} else if type_prod.type == AINT {
-		// 		temp = AddBlueNode(id, PPAINT, parameter_list_prime)
-		// 	} else if type_prod.type == AREAL {
-		// 		temp = AddBlueNode(id, PPAREAL, parameter_list_prime)
-		// 	} else {
-		// 		temp = AddBlueNode(id, ERR, parameter_list_prime)
-		// 	}
-
-		// 	if temp == NULL {
-		// 		fmt.Print("Parameter Error")
-		// 	} else {
-		// 		GreenStack.top.numParams++
-		// 		temp -> parameter_list_prime
-		// 	}
-		// } else {
-		// 	GetPtr(id) -> parameter_list_prime
-		// }
-
 		parser.parameter_list_prime()
-
-		// return parameter_list_prime
 	} else if parser.accept(RIGHT_PAREN) {
-		// return parameter_list_prime
+		// NOOP
 	} else {
 		// ERROR
 		parser.printError("(")
@@ -612,6 +469,7 @@ func (parser *Parser) compound_statement_prime() {
 		parser.optional_statements()
 		parser.expect(END_DEC)
 	} else if parser.accept(END_DEC) {
+		// NOOP
 		parser.expect(END_DEC)
 	} else {
 		// ERROR
@@ -660,13 +518,13 @@ func (parser *Parser) statement() AttributeType {
 			variable = AREAL
 		}
 
-		if parser.CheckType(variable, expression, "ASSIGNOP type mismatch") {
+		if variable == ERR || expression == ERR {
 			return ERR
 		}
 
-		// if variable.type != ERR && variable.type != expression.type {
-		// 	fmt.Print("Operand type mismatch")
-		// }
+		if parser.CheckType(variable, expression, "ASSIGNOP type mismatch") {
+			return ERR
+		}
 	} else if parser.accept(CALL) {
 		parser.procedure_statement()
 	} else if parser.accept(BEGIN) {
@@ -674,22 +532,12 @@ func (parser *Parser) statement() AttributeType {
 	} else if parser.accept(IF) {
 		parser.expect(IF)
 		parser.expression()
-
-		// if expression != BOOL {
-		// 	fmt.Print("expression not a boolean expression")
-		// }
-
 		parser.expect(THEN)
 		parser.statement()
 		parser.statement_prime()
 	} else if parser.accept(WHILE) {
 		parser.expect(WHILE)
 		parser.expression()
-
-		// if expression.type != BOOL {
-		// 	fmt.Print("expression not a boolean expression")
-		// }
-
 		parser.expect(DO)
 		parser.statement()
 	} else {
@@ -717,7 +565,6 @@ func (parser *Parser) statement_prime() {
 
 func (parser *Parser) variable() AttributeType {
 	id := parser.expect(ID)
-	// sym, _ := parser.scanner.SymbolTable().GetPtr(id.Value())
 
 	blueNode, err := parser.scope.GetTop().FindBlueNode(id.Value())
 	if err != nil {
@@ -742,26 +589,6 @@ func (parser *Parser) variable_prime(id AttributeType) AttributeType {
 		}
 
 		return expression
-
-		// if expression == INT {
-		// 	if GetType(variable_prime) == AINT or GetType(variable_prime) == PPAINT {
-		// 		variable_prime = INT
-		// 	}
-
-		// 	if GetType(variable_prime) == AREAL or GetType(variable_prime) == PPAREAL {
-		// 		variable_prime = REAL
-		// 	}
-
-		// 	if GetType(variable_prime) == ERR {
-		// 		variable_prime = ERR
-		// 	} else {
-		// 		variable_prime = ERR_STAR
-		// 		fmt.Print("Error all the things")
-		// 	}
-		// } else {
-		// 	variable_prime = ERR_STAR
-		// 	fmt.Print("Error of the other errors");
-		// }
 	} else if parser.accept(ASSIGNOP) {
 		// NOOP
 		return id
@@ -795,37 +622,14 @@ func (parser *Parser) procedure_statement_prime() {
 
 func (parser *Parser) expression_list() {
 	parser.expression()
-	// PushGreenStack(expression_list)
-	// expression_list_prime = 1
-	// if GreenStack.top.numParams == 0 {
-	// 	fmt.Print("More than 0 parameters given")
-	// 	return false
-	// }
 	parser.expression_list_prime()
-	// if expression == GetParam(0, GreenStack.top) {
-	// 	return expression_list_prime
-	// } else {
-	// 	fmt.Print("Type of parameter 0 does not match")
-	// 	PopGreenNodeStack()
-	// 	return false
-	// }
 }
 
 func (parser *Parser) expression_list_prime() {
 	if parser.accept(COMMA) {
 		parser.expect(COMMA)
 		parser.expression()
-		// expression_list_prime -> expression_list_prime
-		// if GreenStack.top.numParams == expression_list_prime {
-		// 	fmt.Print("More than one parameter supplied")
-		// }
-		// return false
 		parser.expression_list_prime()
-		// if expression == GetParam(expression_list_prime, GreenStack.top) {
-		// 	return expression_list_prime
-		// } else {
-		// 	return false
-		// }
 	} else if parser.accept(RIGHT_PAREN) {
 		// NOOP
 	} else {
@@ -857,16 +661,6 @@ func (parser *Parser) expression_prime(expr AttributeType) AttributeType {
 		}
 
 		return BOOL
-		// if expression_prime == simple_expression {
-		// 	if expression_prime == INT || expression_prime == REAL {
-		// 		expression_prime_type = BOOL
-		// 	} else if expression_prime == ERR {
-		// 		expression_prime_type = ERR
-		// 	} else {
-		// 		expression_prime_type = ERR_STAR
-		// 		fmt.Print("Operand types do not match")
-		// 	}
-		// }
 	} else if parser.accept(END_DEC | SEMI | ELSE | THEN | DO | RIGHT_BRACKET | RIGHT_PAREN | COMMA) {
 		// NOOP
 		return expr
@@ -912,15 +706,8 @@ func (parser *Parser) simple_expression() AttributeType {
 		}
 
 		return termType
-
-		// if term == INT || term == REAL {
-		// 	term -> simple_expression_prime
-		// } else {
-		// 	ERR_STAR -> simple_expression_prime
-		// 	fmt.Print("A sign can only be used with an integer or real")
-		// }
-		// return simple_expression_prime
 	}
+
 	return ERR
 }
 
@@ -931,41 +718,30 @@ func (parser *Parser) simple_expression_prime(typeName AttributeType) AttributeT
 		termType := parser.term()
 		nextExprType := parser.simple_expression_prime(termType)
 
+		if parser.CheckType(typeName, termType, "ADDOP type mismatch") {
+			fmt.Println(typeName)
+			fmt.Println(termType)
+			return ERR
+		}
+
+		if typeName != termType {
+			return ERR
+		}
+
 		if nextExprType == NULL {
 			return termType
 		}
 
 		return termType
-
-		// if simple_expression_prime == term {
-		// 	if addop == OR && simple_expression_prime != BOOL {
-		// 		simple_expression_prime = ERR_STAR
-		// 		fmt.Print("Types do not match operation")
-		// 	}
-		//  if addop != OR && simple_expression_prime != INT {
-		// 		simple_expression_prime = ERR_STAR
-		// 		fmt.Print("Types do not match operation")
-		//  }
-		// 	if simple_expression_prime == BOOL {
-		// 		BOOL -> simple_expression_prime
-		// 	} else if simple_expression_prime == INT {
-		// 		INT -> simple_expression_prime
-		// 	} else if simple_expression_prime == REAL {
-		// 		REAL -> simple_expression_prime
-		// 	}	else {
-		// 		ERR_STAR -> simple_expression_prime
-		// 		fmt.Print("Mixed mode operations not allowed")
-		// 	}
-		// }
-		// return simple_express_prime
 	} else if parser.accept(RELOP) || parser.accept(END_DEC|SEMI|ELSE|THEN|DO|RIGHT_BRACKET|RIGHT_PAREN|COMMA) {
 		// NOOP
+		return typeName
 	} else {
 		// ERROR
 		parser.printError("+", "<", "<=", ">", ">=", "=", "end", ";", "else", "then", "do", "]", ")", ",")
 		parser.sync(RELOP, END_DEC|SEMI|ELSE|THEN|DO|RIGHT_BRACKET|RIGHT_PAREN|COMMA)
+		return ERR
 	}
-	return NULL
 }
 
 func (parser *Parser) term() AttributeType {
@@ -976,15 +752,16 @@ func (parser *Parser) term() AttributeType {
 		return factorType
 	}
 
+	if factorType == ERR || termType == ERR {
+		return ERR
+	}
+
 	if factorType != termType {
 		parser.listing.AddTypeError("MULOP type mismatch")
 		return ERR
 	}
 
 	return termType
-
-	// factor -> term_prime
-	// return term_prime
 }
 
 func (parser *Parser) term_prime() AttributeType {
@@ -992,23 +769,9 @@ func (parser *Parser) term_prime() AttributeType {
 		parser.expect(MULOP)
 		factorType := parser.factor()
 		return factorType
-
-		// if (mulop == '*' || mulop == '/' || mulop == 'div') || (mulop == 'mod' && term_prime == INT) || (mulop == 'and' && term_prime == BOOL) {
-		// 	if term_prime != BOOL {
-		// 		factor -> term_prime
-		// 	} else {
-		// 		ERR_STAR -> term_prime
-		// 		fmt.Print("Types do not match operation")
-		// 	}
-		// } else {
-		// 	ERR_STAR -> term_prime
-		// 	fmt.Print("Mixed mode operations not allowed")
-		// }
-		// return factor
 	} else if parser.accept(ADDOP|RELOP) || parser.accept(END_DEC|SEMI|ELSE|THEN|DO|RIGHT_BRACKET|RIGHT_PAREN|COMMA) {
 		// NOOP
 		return NULL
-		// return term_prime
 	} else {
 		// ERROR
 		parser.printError("*", "+", "<", "<=", ">", ">=", "=", "end", ";", "else", "then", "do", "]", ")", ",")
@@ -1025,7 +788,6 @@ func (parser *Parser) factor() AttributeType {
 		parser.expect(LEFT_PAREN)
 		expression := parser.expression()
 		parser.expect(RIGHT_PAREN)
-		// return NULL
 		return expression
 	} else if parser.accept(ID) {
 		id := parser.expect(ID)
@@ -1091,20 +853,7 @@ func (parser *Parser) factor_prime(prevType AttributeType) AttributeType {
 		return expression
 	} else if parser.accept(ADDOP|MULOP|RELOP) || parser.accept(END_DEC|SEMI|ELSE|THEN|DO|RIGHT_BRACKET|RIGHT_PAREN|COMMA) {
 		// NOOP
-
 		return prevType
-
-		// if sym.GetType() == PPINT {
-		// 	return INT
-		// } else if sym.GetType() == PPREAL {
-		// 	return REAL
-		// } else if sym.GetType() == PPAINT {
-		// 	return AINT
-		// } else if sym.GetType() == PPAREAL {
-		// 	return AREAL
-		// } else {
-		// 	return sym.GetType()
-		// }
 	} else {
 		// ERROR
 		parser.printError("[", "*", "+", "<", "<=", ">", ">=", "=", "end", ";", "else", "then", "do", "]", ")", ",")

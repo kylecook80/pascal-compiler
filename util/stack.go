@@ -5,7 +5,7 @@ type Stack struct {
 }
 
 func NewStack() *Stack {
-	return &Stack{make([]*GreenNode, 1)}
+	return &Stack{make([]*GreenNode, 0)}
 }
 
 func (stack *Stack) Push(item *GreenNode) {
@@ -14,11 +14,16 @@ func (stack *Stack) Push(item *GreenNode) {
 
 func (stack *Stack) Pop() *GreenNode {
 	greenNode := stack.list[len(stack.list)-1]
-	stack.list = stack.list[0 : len(stack.list)-2]
+	stack.list = stack.list[0 : len(stack.list)-1]
 	return greenNode
 }
 
 func (stack *Stack) Peek() *GreenNode {
 	greenNode := stack.list[len(stack.list)-1]
+	return greenNode
+}
+
+func (stack *Stack) First() *GreenNode {
+	greenNode := stack.list[0]
 	return greenNode
 }
