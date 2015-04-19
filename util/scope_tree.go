@@ -13,6 +13,7 @@ type GreenNode struct {
 	parent   *GreenNode
 	vars     []*BlueNode
 	children []*GreenNode
+	params   int
 }
 
 type BlueNode struct {
@@ -38,9 +39,7 @@ func (scope *ScopeTree) GetTop() *GreenNode {
 }
 
 func (scope *ScopeTree) Pop() {
-	greenNode := scope.stack.Pop()
-	parent := greenNode.parent
-	parent.RemoveChild(greenNode)
+	scope.stack.Pop()
 }
 
 func (scope *ScopeTree) CreateRoot(name string, sym *Symbol) {
@@ -49,12 +48,13 @@ func (scope *ScopeTree) CreateRoot(name string, sym *Symbol) {
 	scope.stack.Push(newGreenNode)
 }
 
-func (scope *ScopeTree) AddGreenNode(name string, sym *Symbol) {
-	newGreenNode := NewGreenNode(name, sym)
-	currentNode := scope.stack.Peek()
-	scope.stack.Push(newGreenNode)
-	currentNode.AddChild(newGreenNode)
-	newGreenNode.parent = currentNode
+func (scope *ScopeTree) GetRoot() *GreenNode {
+	first := scope.stack.First()
+	return first
+}
+
+func (node *GreenNode) GetName() string {
+	return node.name
 }
 
 func (node *GreenNode) AddChild(newNode *GreenNode) {
@@ -74,6 +74,31 @@ func (node *GreenNode) RemoveChild(removeNode *GreenNode) {
 			node.children = append(node.children[:match], node.children[match+1:]...)
 		}
 	}
+}
+
+func (scope *ScopeTree) AddGreenNode(name string, sym *Symbol) {
+	newGreenNode := NewGreenNode(name, sym)
+	currentNode := scope.stack.Peek()
+	scope.stack.Push(newGreenNode)
+	currentNode.AddChild(newGreenNode)
+	newGreenNode.parent = currentNode
+}
+
+func (node *GreenNode) FindGreenNode(name string) *GreenNode {
+	for _, greenNode := range node.children {
+		if greenNode.name == name {
+			return greenNode
+		}
+	}
+
+	if node.parent != nil {
+		if node.parent.name == name {
+			return node.parent
+		} else {
+			return node.parent.FindGreenNode(name)
+		}
+	}
+	return nil
 }
 
 func (node *GreenNode) AddBlueNode(name string, sym *Symbol) error {
@@ -113,8 +138,16 @@ func (node *GreenNode) FindBlueNode(name string) (*BlueNode, error) {
 	return nil, fmt.Errorf("Variable not found")
 }
 
-func (node *BlueNode) GetSymbol() *Symbol {
-	return node.sym
+func (node *GreenNode) GetVars() []*BlueNode {
+	return node.vars
+}
+
+func (node *GreenNode) IncParam() {
+	node.params++
+}
+
+func (node *GreenNode) GetNumParams() int {
+	return node.params
 }
 
 func (node *GreenNode) Print() {
@@ -135,7 +168,6 @@ func (node *GreenNode) Print() {
 	fmt.Println()
 }
 
-func (scope *ScopeTree) GetRoot() *GreenNode {
-	first := scope.stack.First()
-	return first
+func (node *BlueNode) GetSymbol() *Symbol {
+	return node.sym
 }

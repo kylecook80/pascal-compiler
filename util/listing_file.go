@@ -44,6 +44,11 @@ func (listing *ListingFile) AddTypeError(line string) error {
 	return err
 }
 
+func (listing *ListingFile) AddScopeError(line string) error {
+	_, err := listing.WriteString("Scope Error: " + line + "\n")
+	return err
+}
+
 func (listing *ListingFile) LineCount() int {
 	return listing.counter
 }
