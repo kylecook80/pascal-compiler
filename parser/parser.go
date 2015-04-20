@@ -15,6 +15,7 @@ type Parser struct {
 	scanner   *Scanner
 	listing   *ListingFile
 	source    *Buffer
+	memory    *MemoryOffsetList
 	tokenFile []byte
 	tok       Token
 	scope     *ScopeTree
@@ -32,6 +33,7 @@ func (parser *Parser) Begin(file string) {
 	source := ReadFile(file)
 
 	parser.listing = listing
+	parser.memory = NewMemoryOffsetList()
 	parser.source = source
 	parser.tokenFile = tokenFile
 
@@ -39,9 +41,13 @@ func (parser *Parser) Begin(file string) {
 
 	parser.program()
 
+	parser.scope.GetRoot().GetMemoryOffset(parser.memory)
+	parser.memory.WriteMemoryOffsetFile()
+
 	// ioutil.WriteFile(GenerateTimeString(time.Now())+"_token_file.txt", parser.tokenFile, 0644)
 	ioutil.WriteFile("token_file.txt", parser.tokenFile, 0644)
 	parser.scanner.SymbolTable().Write()
+	parser.memory.WriteMemoryOffsetFile()
 	parser.listing.Save()
 }
 
@@ -226,7 +232,7 @@ func (parser *Parser) identifier_list() {
 
 	symbol := NewSymbol(progParm.Value(), PGPARM)
 	parser.scanner.SymbolTable().AddSymbol(symbol)
-	parser.scope.GetTop().AddBlueNode(progParm.Value(), symbol)
+	parser.scope.GetTop().AddBlueNode(progParm.Value(), symbol, 0)
 
 	parser.identifier_list_prime()
 }
@@ -238,7 +244,7 @@ func (parser *Parser) identifier_list_prime() {
 		progParm := parser.expect(ID)
 		symbol := NewSymbol(progParm.Value(), PGPARM)
 		parser.scanner.SymbolTable().AddSymbol(symbol)
-		parser.scope.GetTop().AddBlueNode(progParm.Value(), symbol)
+		parser.scope.GetTop().AddBlueNode(progParm.Value(), symbol, 0)
 
 		parser.identifier_list_prime()
 	} else if parser.accept(RIGHT_PAREN) {
@@ -255,10 +261,13 @@ func (parser *Parser) declarations() {
 	id := parser.expect(ID)
 	parser.expect(COLON)
 
-	typeName := parser.type_prod(id.Value())
+	typeName, length := parser.type_prod(id.Value())
 	symbol := NewSymbol(id.Value(), typeName)
 	parser.scanner.SymbolTable().AddSymbol(symbol)
-	parser.scope.GetTop().AddBlueNode(id.Value(), symbol)
+	err := parser.scope.GetTop().AddBlueNode(id.Value(), symbol, length)
+	if err != nil {
+		parser.listing.AddScopeError("Variable " + id.Value() + " already declared")
+	}
 
 	parser.expect(SEMI)
 	parser.declarations_prime()
@@ -270,10 +279,13 @@ func (parser *Parser) declarations_prime() {
 		id := parser.expect(ID)
 		parser.expect(COLON)
 
-		typeName := parser.type_prod(id.Value())
+		typeName, length := parser.type_prod(id.Value())
 		symbol := NewSymbol(id.Value(), typeName)
 		parser.scanner.SymbolTable().AddSymbol(symbol)
-		parser.scope.GetTop().AddBlueNode(id.Value(), symbol)
+		err := parser.scope.GetTop().AddBlueNode(id.Value(), symbol, length)
+		if err != nil {
+			parser.listing.AddScopeError("Variable " + id.Value() + " already declared")
+		}
 
 		parser.expect(SEMI)
 		parser.declarations_prime()
@@ -286,25 +298,37 @@ func (parser *Parser) declarations_prime() {
 	}
 }
 
-func (parser *Parser) type_prod(id string) AttributeType {
+func (parser *Parser) type_prod(id string) (AttributeType, int) {
 	if parser.accept(INT_DEC | REAL_DEC) {
-		standard_type := parser.standard_type(id)
-		return standard_type
+		standardType := parser.standard_type(id)
+		var size int
+		switch standardType {
+		case INT:
+			size = 4
+		case REAL:
+			size = 8
+		}
+		return standardType, size
 	} else if parser.accept(ARRAY) {
 		parser.expect(ARRAY)
 		parser.expect(LEFT_BRACKET)
 
 		num1 := parser.expect(NUM)
 		if parser.CheckType(num1.Attr(), INT, "Array index type mismatch") {
-			return ERR
+			return ERR, 0
 		}
 
 		parser.expect(RANGE)
 
 		num2 := parser.expect(NUM)
 		if parser.CheckType(num2.Attr(), INT, "Array index type mismatch") {
-			return ERR
+			return ERR, 0
 		}
+
+		num1Val, _ := strconv.Atoi(num1.Value())
+		num2Val, _ := strconv.Atoi(num2.Value())
+
+		length := num2Val - num1Val + 1
 
 		parser.expect(RIGHT_BRACKET)
 		parser.expect(OF)
@@ -312,21 +336,21 @@ func (parser *Parser) type_prod(id string) AttributeType {
 		standard_type := parser.standard_type(id)
 
 		if standard_type == PPINT {
-			return PPAINT
+			return PPAINT, 0
 		} else if standard_type == PPREAL {
-			return PPAREAL
+			return PPAREAL, 0
 		} else if standard_type == INT {
-			return AINT
+			return AINT, 4 * length
 		} else if standard_type == REAL {
-			return AREAL
+			return AREAL, 8 * length
 		} else {
-			return ERR
+			return ERR, 0
 		}
 	} else {
 		// ERROR
 		parser.printError("integer", "real", "array")
 		parser.sync(ARRAY)
-		return ERR
+		return ERR, 0
 	}
 }
 
@@ -428,7 +452,7 @@ func (parser *Parser) arguments() {
 func (parser *Parser) parameter_list() {
 	id := parser.expect(ID)
 	parser.expect(COLON)
-	typeName := parser.type_prod(id.Value())
+	typeName, length := parser.type_prod(id.Value())
 
 	var symbol *Symbol
 	if typeName == INT {
@@ -444,7 +468,7 @@ func (parser *Parser) parameter_list() {
 	parser.scanner.SymbolTable().AddSymbol(symbol)
 
 	greenNode := parser.scope.GetTop()
-	greenNode.AddBlueNode(id.Value(), symbol)
+	greenNode.AddBlueNode(id.Value(), symbol, length)
 	greenNode.IncParam()
 
 	parser.parameter_list_prime()
@@ -455,7 +479,7 @@ func (parser *Parser) parameter_list_prime() {
 		parser.expect(SEMI)
 		id := parser.expect(ID)
 		parser.expect(COLON)
-		typeName := parser.type_prod(id.Value())
+		typeName, length := parser.type_prod(id.Value())
 
 		var symbol *Symbol
 		if typeName == INT {
@@ -471,7 +495,7 @@ func (parser *Parser) parameter_list_prime() {
 		parser.scanner.SymbolTable().AddSymbol(symbol)
 
 		greenNode := parser.scope.GetTop()
-		greenNode.AddBlueNode(id.Value(), symbol)
+		greenNode.AddBlueNode(id.Value(), symbol, length)
 		greenNode.IncParam()
 
 		parser.parameter_list_prime()
@@ -559,7 +583,7 @@ func (parser *Parser) statement() AttributeType {
 
 		expression := parser.expression()
 		if expression != ERR {
-			parser.CheckType(expression, BOOL, "Only boolean values are allowed in if statements")
+			parser.CheckType(expression, BOOL, "Only boolean expressions are allowed in if statements")
 		}
 
 		parser.expect(THEN)
@@ -570,7 +594,7 @@ func (parser *Parser) statement() AttributeType {
 
 		expression := parser.expression()
 		if expression != ERR {
-			parser.CheckType(expression, BOOL, "Only boolean values are allowed in while statements")
+			parser.CheckType(expression, BOOL, "Only boolean expressions are allowed in while statements")
 		}
 
 		parser.expect(DO)
@@ -603,7 +627,7 @@ func (parser *Parser) variable() AttributeType {
 
 	blueNode, err := parser.scope.GetTop().FindBlueNode(id.Value())
 	if err != nil {
-		parser.listing.AddScopeError("Variable not declared")
+		parser.listing.AddScopeError("Could not find variable " + id.Value())
 		return ERR
 	}
 
@@ -664,6 +688,12 @@ func (parser *Parser) procedure_statement_prime(proc *GreenNode) {
 }
 
 func (parser *Parser) expression_list(proc *GreenNode) AttributeType {
+	if proc == nil {
+		parser.expression()
+		parser.expression_list_prime(proc, 1)
+		return ERR
+	}
+
 	vars := proc.GetVars()
 	count := 0
 
@@ -671,7 +701,27 @@ func (parser *Parser) expression_list(proc *GreenNode) AttributeType {
 	checkVar := vars[count].GetSymbol().GetType()
 
 	expression := parser.expression()
-	expression_list_prime := parser.expression_list_prime(proc, count+1)
+	count += 1
+	expression_list_prime := parser.expression_list_prime(proc, count)
+
+	if expression == NULL {
+		params := proc.GetNumParams()
+		if params != 0 {
+			parser.listing.AddTypeError("Too few parameters for call to " + proc.GetName())
+			return ERR
+		}
+	}
+
+	if expression_list_prime == NULL {
+		params := proc.GetNumParams()
+		if params > 1 {
+			parser.listing.AddTypeError("Too few parameters for call to " + proc.GetName())
+			return ERR
+		} else if params < 1 {
+			parser.listing.AddTypeError("Too many parameters for call to " + proc.GetName())
+			return ERR
+		}
+	}
 
 	if expression_list_prime == ERR {
 		return ERR
@@ -688,7 +738,7 @@ func (parser *Parser) expression_list(proc *GreenNode) AttributeType {
 		varType = AREAL
 	}
 
-	if parser.CheckType(varType, expression, "Types for call to "+proc.GetName()+" do not match") {
+	if parser.CheckType(varType, expression, "Types for parameter "+strconv.Itoa(count)+" in call to "+proc.GetName()+" do not match") {
 		return ERR
 	}
 
@@ -700,15 +750,16 @@ func (parser *Parser) expression_list_prime(proc *GreenNode, count int) Attribut
 		parser.expect(COMMA)
 
 		vars := proc.GetVars()
+		count += 1
 		var varType AttributeType
-		checkVar := vars[count].GetSymbol().GetType()
+		var checkVar AttributeType
+
+		if count < len(vars) {
+			checkVar = vars[count].GetSymbol().GetType()
+		}
 
 		expression := parser.expression()
-		expression_list_prime := parser.expression_list_prime(proc, count+1)
-
-		if expression_list_prime == ERR {
-			return ERR
-		}
+		expression_list_prime := parser.expression_list_prime(proc, count)
 
 		switch checkVar {
 		case PPINT:
@@ -721,11 +772,26 @@ func (parser *Parser) expression_list_prime(proc *GreenNode, count int) Attribut
 			varType = AREAL
 		}
 
-		if parser.CheckType(varType, expression, "Types for call to "+proc.GetName()+" do not match") {
+		if expression_list_prime == NULL {
+			params := proc.GetNumParams()
+			if params > count {
+				parser.listing.AddTypeError("Too few parameters for call to " + proc.GetName())
+				return ERR
+			} else if params < count {
+				parser.listing.AddTypeError("Too many parameters for call to " + proc.GetName())
+				return ERR
+			}
+		}
+
+		if expression_list_prime == ERR {
 			return ERR
 		}
 
-		return expression_list_prime
+		if parser.CheckType(varType, expression, "Types for parameter "+strconv.Itoa(count)+" call to "+proc.GetName()+" do not match") {
+			return ERR
+		}
+
+		return checkVar
 	} else if parser.accept(RIGHT_PAREN) {
 		// NOOP
 		return NULL
@@ -891,7 +957,7 @@ func (parser *Parser) factor(typeName AttributeType, op TokenType) AttributeType
 
 		blueNode, err := parser.scope.GetTop().FindBlueNode(id.Value())
 		if err != nil {
-			parser.listing.AddScopeError("Variable already exists with same type in scope")
+			parser.listing.AddScopeError("Could not find variable " + id.Value())
 			return ERR
 		}
 

@@ -1,6 +1,7 @@
 package util
 
 import "fmt"
+import "strconv"
 
 type ScopeTree struct {
 	root  *GreenNode
@@ -19,6 +20,7 @@ type GreenNode struct {
 type BlueNode struct {
 	name string
 	sym  *Symbol
+	size int
 }
 
 func NewScopeTree() *ScopeTree {
@@ -30,8 +32,8 @@ func NewGreenNode(name string, sym *Symbol) *GreenNode {
 	return &GreenNode{name: name, sym: sym, vars: make([]*BlueNode, 0), children: make([]*GreenNode, 0)}
 }
 
-func NewBlueNode(name string, sym *Symbol) *BlueNode {
-	return &BlueNode{name, sym}
+func NewBlueNode(name string, sym *Symbol, size int) *BlueNode {
+	return &BlueNode{name, sym, size}
 }
 
 func (scope *ScopeTree) GetTop() *GreenNode {
@@ -49,8 +51,29 @@ func (scope *ScopeTree) CreateRoot(name string, sym *Symbol) {
 }
 
 func (scope *ScopeTree) GetRoot() *GreenNode {
-	first := scope.stack.First()
-	return first
+	return scope.root
+}
+
+func (node *GreenNode) GetMemoryOffset(list *MemoryOffsetList) {
+	list.AddOffset(node.name, "FFFFFFFF")
+	runningTotal := 0
+
+	for _, blueNode := range node.vars {
+		if blueNode != nil {
+			nodeName := blueNode.GetSymbol().name
+			nodeType := blueNode.GetSymbol().GetType()
+			if nodeType == nodeType&(PGPARM|PPINT|PPAINT|PPREAL|PPAREAL) {
+				list.AddOffset(nodeName, "FFFFFFFF")
+			} else {
+				list.AddOffset(nodeName, strconv.Itoa(runningTotal))
+				runningTotal += blueNode.size
+			}
+		}
+	}
+
+	for _, greenNode := range node.children {
+		greenNode.GetMemoryOffset(list)
+	}
 }
 
 func (node *GreenNode) GetName() string {
@@ -101,8 +124,8 @@ func (node *GreenNode) FindGreenNode(name string) *GreenNode {
 	return nil
 }
 
-func (node *GreenNode) AddBlueNode(name string, sym *Symbol) error {
-	newBlueNode := NewBlueNode(name, sym)
+func (node *GreenNode) AddBlueNode(name string, sym *Symbol, size int) error {
+	newBlueNode := NewBlueNode(name, sym, size)
 
 	blueNode, _ := node.FindBlueNode(name)
 	if blueNode != nil {
