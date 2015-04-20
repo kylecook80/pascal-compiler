@@ -2,4 +2,4 @@
 
 rm *.txt
 go build
-./compiler test.pas
+./compiler src_with_errors.pas

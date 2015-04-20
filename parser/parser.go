@@ -339,6 +339,10 @@ func (parser *Parser) subprogram_declaration_double_prime() {
 	} else if parser.accept(PROC) {
 		parser.subprogram_declarations()
 		parser.compound_statement()
+	} else {
+		// ERROR
+		parser.printError("begin", "procedure")
+		parser.sync(SEMI)
 	}
 }
 
