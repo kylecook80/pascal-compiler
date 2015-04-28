@@ -2,4 +2,4 @@
 
 rm *.txt
 go build
-./compiler final_src.pas
+./compiler cor3.pas

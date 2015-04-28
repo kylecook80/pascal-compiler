@@ -423,6 +423,12 @@ func (parser *Parser) subprogram_head() {
 	parser.expect(PROC)
 
 	procName := parser.expect(ID)
+	greenNode := parser.scope.GetTop().FindGreenNode(procName.Value())
+
+	if greenNode != nil {
+		parser.listing.AddScopeError("Procedure " + procName.Value() + " already exists")
+	}
+
 	symbol := NewSymbol(procName.Value(), PROC)
 	parser.scanner.SymbolTable().AddSymbol(symbol)
 	parser.scope.AddGreenNode(procName.Value(), symbol)
@@ -688,44 +694,24 @@ func (parser *Parser) procedure_statement_prime(proc *GreenNode) {
 }
 
 func (parser *Parser) expression_list(proc *GreenNode) AttributeType {
+	// if proc == nil {
+	// 	parser.expression()
+	// 	parser.expression_list_prime(proc, 0)
+	// 	return ERR
+	// }
+
 	if proc == nil {
-		parser.expression()
-		parser.expression_list_prime(proc, 1)
 		return ERR
 	}
 
 	vars := proc.GetVars()
 	count := 0
 
-	var varType AttributeType
+	varType := NULL
 	checkVar := vars[count].GetSymbol().GetType()
 
 	expression := parser.expression()
-	count += 1
 	expression_list_prime := parser.expression_list_prime(proc, count)
-
-	if expression == NULL {
-		params := proc.GetNumParams()
-		if params != 0 {
-			parser.listing.AddTypeError("Too few parameters for call to " + proc.GetName())
-			return ERR
-		}
-	}
-
-	if expression_list_prime == NULL {
-		params := proc.GetNumParams()
-		if params > 1 {
-			parser.listing.AddTypeError("Too few parameters for call to " + proc.GetName())
-			return ERR
-		} else if params < 1 {
-			parser.listing.AddTypeError("Too many parameters for call to " + proc.GetName())
-			return ERR
-		}
-	}
-
-	if expression_list_prime == ERR {
-		return ERR
-	}
 
 	switch checkVar {
 	case PPINT:
@@ -742,21 +728,42 @@ func (parser *Parser) expression_list(proc *GreenNode) AttributeType {
 		return ERR
 	}
 
-	return expression_list_prime
+	if expression == NULL {
+		params := proc.GetNumParams()
+		if params != 0 {
+			parser.listing.AddTypeError("Too few parameters for call to " + proc.GetName())
+			return ERR
+		}
+	}
+
+	if expression_list_prime == NULL {
+		params := proc.GetNumParams()
+		fmt.Println(params)
+		if params > 1 {
+			parser.listing.AddTypeError("Too few parameters for call to " + proc.GetName())
+			return ERR
+		} else if params < 1 {
+			parser.listing.AddTypeError("Too many parameters for call to " + proc.GetName())
+			return ERR
+		}
+	}
+
+	// if expression_list_prime == ERR {
+	// 	return ERR
+	// }
+
+	return checkVar
 }
 
 func (parser *Parser) expression_list_prime(proc *GreenNode, count int) AttributeType {
 	if parser.accept(COMMA) {
 		parser.expect(COMMA)
 
-		vars := proc.GetVars()
 		count += 1
-		var varType AttributeType
-		var checkVar AttributeType
 
-		if count < len(vars) {
-			checkVar = vars[count].GetSymbol().GetType()
-		}
+		vars := proc.GetVars()
+		varType := NULL
+		checkVar := vars[count].GetSymbol().GetType()
 
 		expression := parser.expression()
 		expression_list_prime := parser.expression_list_prime(proc, count)
@@ -774,24 +781,23 @@ func (parser *Parser) expression_list_prime(proc *GreenNode, count int) Attribut
 
 		if expression_list_prime == NULL {
 			params := proc.GetNumParams()
-			if params > count {
+			fmt.Println(params)
+			fmt.Println()
+			fmt.Println(count + 1)
+			if params > (count + 1) {
 				parser.listing.AddTypeError("Too few parameters for call to " + proc.GetName())
 				return ERR
-			} else if params < count {
+			} else if params < (count + 1) {
 				parser.listing.AddTypeError("Too many parameters for call to " + proc.GetName())
 				return ERR
 			}
 		}
 
-		if expression_list_prime == ERR {
+		if parser.CheckType(varType, expression, "Types for parameter "+strconv.Itoa(count)+" in call to "+proc.GetName()+" do not match") {
 			return ERR
 		}
 
-		if parser.CheckType(varType, expression, "Types for parameter "+strconv.Itoa(count)+" call to "+proc.GetName()+" do not match") {
-			return ERR
-		}
-
-		return checkVar
+		return varType
 	} else if parser.accept(RIGHT_PAREN) {
 		// NOOP
 		return NULL
