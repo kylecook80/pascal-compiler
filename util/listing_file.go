@@ -39,6 +39,11 @@ func (listing *ListingFile) AddSyntaxError(line string) error {
 	return err
 }
 
+func (listing *ListingFile) AddSemanticError(line string) error {
+	_, err := listing.WriteString("Semantic Error: " + line + "\n")
+	return err
+}
+
 func (listing *ListingFile) AddTypeError(line string) error {
 	_, err := listing.WriteString("Type Error: " + line + "\n")
 	return err

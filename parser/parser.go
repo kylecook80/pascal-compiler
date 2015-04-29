@@ -168,7 +168,7 @@ func (parser *Parser) sync(t ...interface{}) {
 
 func (parser *Parser) CheckType(value AttributeType, checked AttributeType, msg string) bool {
 	if value != value&checked {
-		parser.listing.AddTypeError(msg)
+		parser.listing.AddSemanticError(msg)
 		return true
 	} else {
 		return false
@@ -266,7 +266,7 @@ func (parser *Parser) declarations() {
 	parser.scanner.SymbolTable().AddSymbol(symbol)
 	err := parser.scope.GetTop().AddBlueNode(id.Value(), symbol, length)
 	if err != nil {
-		parser.listing.AddScopeError("Variable " + id.Value() + " already declared")
+		parser.listing.AddSemanticError("Variable " + id.Value() + " already declared")
 	}
 
 	parser.expect(SEMI)
@@ -284,7 +284,7 @@ func (parser *Parser) declarations_prime() {
 		parser.scanner.SymbolTable().AddSymbol(symbol)
 		err := parser.scope.GetTop().AddBlueNode(id.Value(), symbol, length)
 		if err != nil {
-			parser.listing.AddScopeError("Variable " + id.Value() + " already declared")
+			parser.listing.AddSemanticError("Variable " + id.Value() + " already declared")
 		}
 
 		parser.expect(SEMI)
@@ -426,7 +426,7 @@ func (parser *Parser) subprogram_head() {
 	greenNode := parser.scope.GetTop().FindGreenNode(procName.Value())
 
 	if greenNode != nil {
-		parser.listing.AddScopeError("Procedure " + procName.Value() + " already exists")
+		parser.listing.AddSemanticError("Procedure " + procName.Value() + " already exists")
 	}
 
 	symbol := NewSymbol(procName.Value(), PROC)
@@ -633,7 +633,7 @@ func (parser *Parser) variable() AttributeType {
 
 	blueNode, err := parser.scope.GetTop().FindBlueNode(id.Value())
 	if err != nil {
-		parser.listing.AddScopeError("Could not find variable " + id.Value())
+		parser.listing.AddSemanticError("Could not find variable " + id.Value())
 		return ERR
 	}
 
@@ -673,7 +673,7 @@ func (parser *Parser) procedure_statement() {
 	calledProc := greenNode.FindGreenNode(id.Value())
 
 	if calledProc == nil {
-		parser.listing.AddScopeError("Procedure " + id.Value() + " not found")
+		parser.listing.AddSemanticError("Procedure " + id.Value() + " not found")
 	}
 
 	parser.procedure_statement_prime(calledProc)
@@ -686,6 +686,10 @@ func (parser *Parser) procedure_statement_prime(proc *GreenNode) {
 		parser.expect(RIGHT_PAREN)
 	} else if parser.accept(END_DEC | SEMI | ELSE) {
 		// NOOP
+		params := proc.GetNumParams()
+		if params > 0 {
+			parser.listing.AddSemanticError("Too few parameters for call to " + proc.GetName())
+		}
 	} else {
 		// ERROR
 		parser.printError("(", "end", ";", "else")
@@ -694,12 +698,6 @@ func (parser *Parser) procedure_statement_prime(proc *GreenNode) {
 }
 
 func (parser *Parser) expression_list(proc *GreenNode) AttributeType {
-	// if proc == nil {
-	// 	parser.expression()
-	// 	parser.expression_list_prime(proc, 0)
-	// 	return ERR
-	// }
-
 	if proc == nil {
 		return ERR
 	}
@@ -712,6 +710,15 @@ func (parser *Parser) expression_list(proc *GreenNode) AttributeType {
 
 	expression := parser.expression()
 	expression_list_prime := parser.expression_list_prime(proc, count)
+
+	fmt.Println(expression)
+	fmt.Println(expression_list_prime)
+	fmt.Println()
+
+	if expression == ERR {
+		parser.listing.AddSyntaxError("Must have arguments inside parentheses")
+		return ERR
+	}
 
 	switch checkVar {
 	case PPINT:
@@ -731,19 +738,18 @@ func (parser *Parser) expression_list(proc *GreenNode) AttributeType {
 	if expression == NULL {
 		params := proc.GetNumParams()
 		if params != 0 {
-			parser.listing.AddTypeError("Too few parameters for call to " + proc.GetName())
+			parser.listing.AddSemanticError("Too few parameters for call to " + proc.GetName())
 			return ERR
 		}
 	}
 
 	if expression_list_prime == NULL {
 		params := proc.GetNumParams()
-		fmt.Println(params)
 		if params > 1 {
-			parser.listing.AddTypeError("Too few parameters for call to " + proc.GetName())
+			parser.listing.AddSemanticError("Too few parameters for call to " + proc.GetName())
 			return ERR
 		} else if params < 1 {
-			parser.listing.AddTypeError("Too many parameters for call to " + proc.GetName())
+			parser.listing.AddSemanticError("Too many parameters for call to " + proc.GetName())
 			return ERR
 		}
 	}
@@ -781,14 +787,12 @@ func (parser *Parser) expression_list_prime(proc *GreenNode, count int) Attribut
 
 		if expression_list_prime == NULL {
 			params := proc.GetNumParams()
-			fmt.Println(params)
-			fmt.Println()
-			fmt.Println(count + 1)
+
 			if params > (count + 1) {
-				parser.listing.AddTypeError("Too few parameters for call to " + proc.GetName())
+				parser.listing.AddSemanticError("Too few parameters for call to " + proc.GetName())
 				return ERR
 			} else if params < (count + 1) {
-				parser.listing.AddTypeError("Too many parameters for call to " + proc.GetName())
+				parser.listing.AddSemanticError("Too many parameters for call to " + proc.GetName())
 				return ERR
 			}
 		}
@@ -963,7 +967,7 @@ func (parser *Parser) factor(typeName AttributeType, op TokenType) AttributeType
 
 		blueNode, err := parser.scope.GetTop().FindBlueNode(id.Value())
 		if err != nil {
-			parser.listing.AddScopeError("Could not find variable " + id.Value())
+			parser.listing.AddSemanticError("Could not find variable " + id.Value())
 			return ERR
 		}
 
