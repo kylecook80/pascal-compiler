@@ -26,3 +26,5 @@ compiler
 *.txt
 
 .DS_Store
+node_modules/
+cor3.pas
